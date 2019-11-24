@@ -19,19 +19,19 @@ import torchvision.datasets as datasets
 import torchvision.models as models
 
 model_names = sorted(name for name in models.__dict__
-                                         if name.islower() and not name.startswith("__") and
-                                         callable(models.__dict__[name]))
+                     if name.islower() and not name.startswith("__") and
+                     callable(models.__dict__[name]))
 
 parser = argparse.ArgumentParser(description='PyTorch ImageNet Training')
 parser.add_argument('data', metavar='DIR',
-                                        help='path to dataset')
+                     help='path to dataset')
 parser.add_argument('-a', '--arch', metavar='ARCH', default='resnet18',
-                                        choices=model_names,
-                                        help='model architecture: '
-                                                 + ' | '.join(model_names)
-                                                 + ' (default: resnet18)')
+                     choices=model_names,
+                     help='model architecture: '
+                     + ' | '.join(model_names)
+                     + ' (default: resnet18)')
 parser.add_argument('-j', '--workers', default=4, type=int, metavar='N',
-                                        help='number of data loading workers (default: 4)')
+                     help='number of data loading workers (default: 4)')
 parser.add_argument('--epochs', default=90, type=int, metavar='N',
                                         help='number of total epochs to run')
 parser.add_argument('--start-epoch', default=0, type=int, metavar='N',
@@ -69,10 +69,10 @@ parser.add_argument('--seed', default=None, type=int,
 parser.add_argument('--gpu', default=None, type=int,
                                         help='GPU id to use.')
 parser.add_argument('--multiprocessing-distributed', action='store_true',
-                                        help='Use multi-processing distributed training to launch '
-                                                 'N processes per node, which has N GPUs. This is the '
-                                                 'fastest way to use PyTorch for either single node or '
-                                                 'multi node data parallel training')
+                     help='Use multi-processing distributed training to launch '
+                          'N processes per node, which has N GPUs. This is the '
+                          'fastest way to use PyTorch for either single node or '
+                          'multi node data parallel training')
 
 best_acc1 = 0
 
@@ -192,10 +192,10 @@ def main_worker(gpu, ngpus_per_node, args):
     cudnn.benchmark = True
     
     # Data loading code
-    traindir = os.path.join(args.data, 'train')
-    valdir = os.path.join(args.data, 'val')
+    traindir = os.path.join(args.data, 'imagenet_train')
+    valdir = os.path.join(args.data, 'imagenet_val')
     normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                                                     std=[0.229, 0.224, 0.225])
+                                     std=[0.229, 0.224, 0.225])
     
     train_dataset = datasets.ImageFolder(
         traindir,
@@ -295,11 +295,11 @@ def train(train_loader, model, criterion, optimizer, epoch, args):
         
         if i % args.print_freq == 0:
             print('Epoch: [{0}][{1}/{2}]\t'
-                        'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
-                        'Data {data_time.val:.3f} ({data_time.avg:.3f})\t'
-                        'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
-                        'Acc@1 {top1.val:.3f} ({top1.avg:.3f})\t'
-                        'Acc@5 {top5.val:.3f} ({top5.avg:.3f})'.format(
+                  'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
+                  'Data {data_time.val:.3f} ({data_time.avg:.3f})\t'
+                  'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
+                  'Acc@1 {top1.val:.3f} ({top1.avg:.3f})\t'
+                  'Acc@5 {top5.val:.3f} ({top5.avg:.3f})'.format(
                 epoch, i, len(train_loader), batch_time=batch_time,
                 data_time=data_time, loss=losses, top1=top1, top5=top5))
 
@@ -336,10 +336,10 @@ def validate(val_loader, model, criterion, args):
             
             if i % args.print_freq == 0:
                 print('Test: [{0}/{1}]\t'
-                            'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
-                            'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
-                            'Acc@1 {top1.val:.3f} ({top1.avg:.3f})\t'
-                            'Acc@5 {top5.val:.3f} ({top5.avg:.3f})'.format(
+                      'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
+                      'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
+                      'Acc@1 {top1.val:.3f} ({top1.avg:.3f})\t'
+                      'Acc@5 {top5.val:.3f} ({top5.avg:.3f})'.format(
                     i, len(val_loader), batch_time=batch_time, loss=losses,
                     top1=top1, top5=top5))
         
