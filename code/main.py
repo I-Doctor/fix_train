@@ -1,10 +1,20 @@
-import argparse
-import os
-import random
-import shutil
-import time
-import warnings
 
+# import basic libs
+import os,sys
+import six
+import math
+import time
+import shutil
+import random
+import datetime
+import warnings
+import argparse
+import numpy as np  
+import matplotlib.pyplot as plt 
+import hiddenlayer as hl
+from collections import OrderedDict
+
+# import pytorch libs
 import torch
 import torch.nn as nn
 import torch.nn.parallel
@@ -18,159 +28,226 @@ import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 import torchvision.models as models
 
+# import customized libs
+from model import *
+from utils import *
+from model.module.prunable import *
+
 model_names = sorted(name for name in models.__dict__
                      if name.islower() and not name.startswith("__") and
                      callable(models.__dict__[name]))
 
-parser = argparse.ArgumentParser(description='PyTorch ImageNet Training')
-parser.add_argument('data', metavar='DIR',
-                     help='path to dataset')
-parser.add_argument('-a', '--arch', metavar='ARCH', default='resnet18',
-                     choices=model_names,
-                     help='model architecture: '
-                     + ' | '.join(model_names)
-                     + ' (default: resnet18)')
-parser.add_argument('-j', '--workers', default=4, type=int, metavar='N',
-                     help='number of data loading workers (default: 4)')
-parser.add_argument('--epochs', default=90, type=int, metavar='N',
-                                        help='number of total epochs to run')
-parser.add_argument('--start-epoch', default=0, type=int, metavar='N',
-                                        help='manual epoch number (useful on restarts)')
-parser.add_argument('-b', '--batch-size', default=256, type=int,
-                                        metavar='N',
-                                        help='mini-batch size (default: 256), this is the total '
-                                                 'batch size of all GPUs on the current node when '
-                                                 'using Data Parallel or Distributed Data Parallel')
-parser.add_argument('--lr', '--learning-rate', default=0.1, type=float,
-                                        metavar='LR', help='initial learning rate', dest='lr')
-parser.add_argument('--momentum', default=0.9, type=float, metavar='M',
-                                        help='momentum')
-parser.add_argument('--wd', '--weight-decay', default=1e-4, type=float,
-                                        metavar='W', help='weight decay (default: 1e-4)',
-                                        dest='weight_decay')
-parser.add_argument('-p', '--print-freq', default=10, type=int,
-                                        metavar='N', help='print frequency (default: 10)')
-parser.add_argument('--resume', default='', type=str, metavar='PATH',
-                                        help='path to latest checkpoint (default: none)')
-parser.add_argument('-e', '--evaluate', dest='evaluate', action='store_true',
-                                        help='evaluate model on validation set')
-parser.add_argument('--pretrained', dest='pretrained', action='store_true',
-                                        help='use pre-trained model')
-parser.add_argument('--world-size', default=-1, type=int,
-                                        help='number of nodes for distributed training')
-parser.add_argument('--rank', default=-1, type=int,
-                                        help='node rank for distributed training')
-parser.add_argument('--dist-url', default='tcp://224.66.41.62:23456', type=str,
-                                        help='url used to set up distributed training')
-parser.add_argument('--dist-backend', default='nccl', type=str,
-                                        help='distributed backend')
-parser.add_argument('--seed', default=None, type=int,
-                                        help='seed for initializing training. ')
-parser.add_argument('--gpu', default=None, type=int,
-                                        help='GPU id to use.')
-parser.add_argument('--multiprocessing-distributed', action='store_true',
-                     help='Use multi-processing distributed training to launch '
-                          'N processes per node, which has N GPUs. This is the '
-                          'fastest way to use PyTorch for either single node or '
-                          'multi node data parallel training')
-
 best_acc1 = 0
 
+def main(argv):
 
-def main():
+    parser = argparse.ArgumentParser(description='PyTorch Classification Training')
+
+    # Required arguments: input and output files.
+    parser.add_argument(
+        "data_root", metavar='DIR'
+        help = "Must give the dataset root to do the training (absolute path)."
+   )
+    parser.add_argument(
+        "config_file",
+        help = "Must give the config file of this experiment."
+   )
+    parser.add_argument(
+        "output_dir",
+        help = "Must give the path to save output logfile and other data."
+   )
+    parser.add_argument(
+        "--gpu", default=None, type=int, 
+        help = "Set visible gpu independantly because it has no influence to results"
+   )
+    #parser.add_argument('-a', '--arch', metavar='ARCH', default='resnet18',
+    #                     choices=model_names,
+    #                     help='model architecture: '
+    #                     + ' | '.join(model_names)
+    #                     + ' (default: resnet18)')
+    #parser.add_argument('-j', '--workers', default=4, type=int, metavar='N',
+    #                     help='number of data loading workers (default: 4)')
+    #parser.add_argument('-p', '--print-freq', default=10, type=int,
+    #                                        metavar='N', help='print frequency (default: 10)')
+    #parser.add_argument('--resume', default='', type=str, metavar='PATH',
+    #                                        help='path to latest checkpoint (default: none)')
+    #parser.add_argument('-e', '--evaluate', dest='evaluate', action='store_true',
+    #                                        help='evaluate model on validation set')
+    #parser.add_argument('--pretrained', dest='pretrained', action='store_true',
+    #                                        help='use pre-trained model')
+    #parser.add_argument('--world-size', default=-1, type=int,
+    #                                        help='number of nodes for distributed training')
+    #parser.add_argument('--rank', default=-1, type=int,
+    #                                        help='node rank for distributed training')
+    #parser.add_argument('--dist-url', default='tcp://224.66.41.62:23456', type=str,
+    #                                        help='url used to set up distributed training')
+    #parser.add_argument('--dist-backend', default='nccl', type=str,
+    #                                        help='distributed backend')
+    #parser.add_argument('--seed', default=None, type=int,
+    #                                        help='seed for initializing training. ')
+    #parser.add_argument('--gpu', default=None, type=int,
+    #                                        help='GPU id to use.')
+    #parser.add_argument('--multiprocessing-distributed', action='store_true',
+    #                     help='Use multi-processing distributed training to launch '
+    #                          'N processes per node, which has N GPUs. This is the '
+    #                          'fastest way to use PyTorch for either single node or '
+    #                          'multi node data parallel training')
+
+
+    #-----------------------LOAD AND CHECK PARAMETER---------------------#
     args = parser.parse_args()
+
+    print("cfg_file name:", args.config_file)
+    cfg = create_default_cfg()  
+    update_cfg(cfg, args.config_file)  
+    net_cfg = cfg.NETWORK
+    train_cfg = cfg.TRAIN
+    data_cfg = cfg.DATA
+    log_cfg = cfg.LOG
+
+    # global variables
+    LR_flag  = False            # LR is setted by the list if True
+    LR_num   = 1                # The number of LR list
+    LR_now   = 1                # The index of LR list
+    LR_start = 0.1              # The original LR
+    ACC_best = 0
+    EPO_best = 0
+    START_epoch = 0
     
-    if args.seed is not None:
-        random.seed(args.seed)
-        torch.manual_seed(args.seed)
+    # check learning rate adjustment parameters are valid
+    if isinstance(train_cfg.learning_rate, list) & (isinstance(train_cfg.decay_step, list)):
+        if len(train_cfg.learning_rate) == len(train_cfg.decay_step):
+            if len(train_cfg.learning_rate) == 1:
+                LR_flag = False
+            else:
+                LR_flag = True
+        else:
+            print('Error because the length of learning rate and decay step are not equal')
+            return
+    else:
+        print('Error because the length of learning rate and decay step are not equal')
+        return
+
+    # record learning rate parameters 
+    LR_start = train_cfg.learning_rate[0]
+    LR_num = len(train_cfg.learning_rate)        
+
+    # check random seed and record
+    if cfg.random_seed is not None:
+        random.seed(cfg.random_seed)
+        torch.manual_seed(cfg.random_seed)
         cudnn.deterministic = True
         warnings.warn('You have chosen to seed training. '
                       'This will turn on the CUDNN deterministic setting, '
                       'which can slow down your training considerably! '
-                                    'You may see unexpected behavior when restarting '
-                                    'from checkpoints.')
+                      'You may see unexpected behavior when restarting '
+                      'from checkpoints.')
     
+    # check and set whole system
     if args.gpu is not None:
+        #os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu
         warnings.warn('You have chosen a specific GPU. This will completely '
-                                    'disable data parallelism.')
+                       'disable data parallelism.')
     
-    if args.dist_url == "env://" and args.world_size == -1:
-        args.world_size = int(os.environ["WORLD_SIZE"])
+    if cfg.dist_url == "env://" and cfg.world_size == -1:
+        cfg.world_size = int(os.environ["WORLD_SIZE"])
     
-    args.distributed = args.world_size > 1 or args.multiprocessing_distributed
+    cfg.distributed = cfg.world_size > 1 or cfg.multiprocessing_distributed
     
     ngpus_per_node = torch.cuda.device_count()
-    if args.multiprocessing_distributed:
+    
+    if cfg.multiprocessing_distributed:
         # Since we have ngpus_per_node processes per node, the total world_size
         # needs to be adjusted accordingly
-        args.world_size = ngpus_per_node * args.world_size
+        cfg.world_size = ngpus_per_node * cfg.world_size
         # Use torch.multiprocessing.spawn to launch distributed processes: the
         # main_worker process function
-        mp.spawn(main_worker, nprocs=ngpus_per_node, args=(ngpus_per_node, args))
+        mp.spawn(main_worker, nprocs=ngpus_per_node, args=(ngpus_per_node, cfg))
     else:
         # Simply call main_worker function
-        main_worker(args.gpu, ngpus_per_node, args)
+        main_worker(args.gpu, ngpus_per_node, cfg)
 
 
-def main_worker(gpu, ngpus_per_node, args):
+def main_worker(gpu, ngpus_per_node, cfg):
     global best_acc1
-    args.gpu = gpu
+    cfg.gpu = gpu
+    net_cfg = cfg.NETWORK
+    train_cfg = cfg.TRAIN
+    data_cfg = cfg.DATA
+    log_cfg = cfg.LOG
     
-    if args.gpu is not None:
-        print("Use GPU: {} for training".format(args.gpu))
+    if cfg.gpu is not None:
+        print("Use GPU: {} for training".format(cfg.gpu))
     
-    if args.distributed:
-        if args.dist_url == "env://" and args.rank == -1:
-            args.rank = int(os.environ["RANK"])
-        if args.multiprocessing_distributed:
+    if cfg.distributed:
+        if cfg.dist_url == "env://" and cfg.rank == -1:
+            cfg.rank = int(os.environ["RANK"])
+        if cfg.multiprocessing_distributed:
             # For multiprocessing distributed training, rank needs to be the
             # global rank among all the processes
-            args.rank = args.rank * ngpus_per_node + gpu
-        dist.init_process_group(backend=args.dist_backend, init_method=args.dist_url,
-                                                        world_size=args.world_size, rank=args.rank)
+            cfg.rank = cfg.rank * ngpus_per_node + gpu
+        dist.init_process_group(backend=cfg.dist_backend, init_method=cfg.dist_url,
+                                world_size=cfg.world_size, rank=cfg.rank)
     # create model
-    if args.pretrained:
-        print("=> using pre-trained model '{}'".format(args.arch))
-        model = models.__dict__[args.arch](pretrained=True)
+    if net_cfg.pretrained:
+        print("=> using pre-trained model '{}-{}'".format(net_cfg.arch, net_cfg.depth))
+        model = models.__dict__[net_cfg.arch+net_cfg.depth](pretrained=True)
     else:
-        print("=> creating model '{}'".format(args.arch))
-        model = models.__dict__[args.arch]()
+        print("=> creating model '{}-{}'".format(net_cfg.arch, net_cfg.depth))
+        model = models.__dict__[net_cfg.arch+net_cfg.depth]()
     
-    if args.distributed:
+    if cfg.distributed:
         # For multiprocessing distributed, DistributedDataParallel constructor
         # should always set the single device scope, otherwise,
         # DistributedDataParallel will use all available devices.
-        if args.gpu is not None:
-            torch.cuda.set_device(args.gpu)
-            model.cuda(args.gpu)
+        if cfg.gpu is not None:
+            torch.cuda.set_device(cfg.gpu)
+            model.cuda(cfg.gpu)
             # When using a single GPU per process and per
             # DistributedDataParallel, we need to divide the batch size
             # ourselves based on the total number of GPUs we have
-            args.batch_size = int(args.batch_size / ngpus_per_node)
-            args.workers = int(args.workers / ngpus_per_node)
-            model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu])
+            data_cfg.batch_size = int(data_cfg.batch_size / ngpus_per_node)
+            data_cfg.num_works = int(data_cfg.num_works / ngpus_per_node)
+            model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[cfg.gpu])
         else:
             model.cuda()
             # DistributedDataParallel will divide and allocate batch_size to all
             # available GPUs if device_ids are not set
             model = torch.nn.parallel.DistributedDataParallel(model)
-    elif args.gpu is not None:
-        torch.cuda.set_device(args.gpu)
-        model = model.cuda(args.gpu)
+    elif cfg.gpu is not None:
+        torch.cuda.set_device(cfg.gpu)
+        model = model.cuda(cfg.gpu)
     else:
         # DataParallel will divide and allocate batch_size to all available GPUs
-        if args.arch.startswith('alexnet') or args.arch.startswith('vgg'):
+        if net_cfg.arch.startswith('alexnet') or net_cfg.arch.startswith('vgg'):
             model.features = torch.nn.DataParallel(model.features)
             model.cuda()
         else:
             model = torch.nn.DataParallel(model).cuda()
     
     # define loss function (criterion) and optimizer
-    criterion = nn.CrossEntropyLoss().cuda(args.gpu)
+    criterion = nn.CrossEntropyLoss().cuda(cfg.gpu)
     
-    optimizer = torch.optim.SGD(model.parameters(), args.lr,
-                                                            momentum=args.momentum,
-                                                            weight_decay=args.weight_decay)
+    opt_Adam  = optim.Adam( net.parameters(), lr = LR_start, 
+                            betas=(0.9, 0.999), weight_decay = 1e-8) 
+    opt_SGD   = optim.SGD ( net.parameters(), lr = LR_start,
+                            weight_decay=train_cfg.weight_decay) 
+    opt_SGDm  = optim.SGD ( net.parameters(), lr = LR_start, 
+                            momentum=train_cfg.momentum, 
+                            weight_decay=train_cfg.weight_decay) 
+    opt_RMS   = optim.RMSprop(net.parameters(), lr = LR_start, 
+                            weight_decay=5e-4)
+    if train_cfg.optimizer == "Adam":
+        print("  Use optimizer Adam.")
+        optimizer = opt_Adam    
+    elif train_cfg.optimizer == "SGDm":
+        print("  Use optimizer SGDm.")
+        optimizer = opt_SGDm
+    else:
+        print("  Use optimizer SGD.")
+        optimizer = opt_SGD
+    net.set_lr_scale(np.around(np.log2(LR_start))) # set lr scale for gw quantize
+    
     
     # optionally resume from a checkpoint
     if args.resume:

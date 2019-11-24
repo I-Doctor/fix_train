@@ -22,37 +22,40 @@ def create_default_cfg():
     config.cuda = True
     # Using parallel training."
     config.parallel = True
+    # Using multiprocessing training."
+    config.multiprocessing_distributed = True
+    # Using disgtributed training."
+    config.distributed = False
+    # Parameters for distributed training."
+    config.world_size = -1
+    config.rank = -1
+    config.dist_url = 'tcp://127.0.0.1:9000'
+    config.dist_backend = 'nccl'
     # The number of available gpu device."
     config.visible_device = "0"
+    ''' cuda visible device should be given every time you run the code'''
     # The epoch frequence of saving snapshot."
     config.snapshot_freq = 30
     # The epoch starting quantize."
     config.float_epoch = 30
-    # The epoch starting asparse."
-    config.adense_epoch = 30
-    # The epoch starting prune."
-    config.wdense_epoch = 30
     
     config.NETWORK = edict()
     # Depth of ResNet model."
+    config.NETWORK.arch = 'resnet'
     config.NETWORK.depth = 20
     config.NETWORK.class_num = 10
     # using batch normalization when traning."
     config.NETWORK.batchnorm = True
-    # using weights sparse when traning."
-    config.NETWORK.pruning = False
-    config.NETWORK.pruning_cfg = None
-    # using activation sparse block when traning."
-    config.NETWORK.asparse = False
-    # The sparse block shape (list four demontion)."
-    # Threshold of max item in each masked block."
-    # Max number of non-zero item in each masked block."
-    config.NETWORK.asparse_cfg = None
+    config.NETWORK.pretrained = False
     # using quantization when traning."
     config.NETWORK.quantize = False
     config.NETWORK.quantize_cfg = None
 
     config.TRAIN = edict()
+    # Resume or not"
+    config.TRAIN.resume = None
+    # Evaluate or not"
+    config.TRAIN.evaluate = False
     # The number of epoch of training."
     config.TRAIN.epoch = 170
     # The optimizer of training.(SGD,Adam,SGDm)"
@@ -66,7 +69,7 @@ def create_default_cfg():
     # Decay factor of weight."
     config.TRAIN.weight_decay = 1e-4
     # Momentum using in optimizers."
-    config.TRAIN.momentum = 0.5
+    config.TRAIN.momentum = 0.9
 
     config.DATA = edict()
     # The size of mini-batch of SGD."
