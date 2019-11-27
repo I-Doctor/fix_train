@@ -1,0 +1,58 @@
+data_root: /home/zhongkai/experiment/pruning/VGGCIFAR/datasets/
+parallel: false
+visible_device: '3'
+adense_epoch: 30
+NETWORK: 
+    depth: 20
+    class_num: 10
+    batchnorm: true
+    quantize: false
+    quantize_cfg: null
+    pruning: false
+    pruning_cfg: null
+    asparse: true
+    asparse_cfg:
+        block_shape:
+            - 4
+            - 2
+            - 2
+        thres_type: absolute
+        threshold: 0.5
+        non_zero: 0.5
+TRAIN: 
+    epoch: 173
+    optimizer: SGDm
+    learning_rate: 
+        - 0.1
+        - 0.01
+        - 0.001
+    decay_step:
+        - 0
+        - 81
+        - 122
+    warmup: false
+    weight_decay: 0.0001
+    momentum: 0.9
+DATA:
+    dataset: cifar10
+    batch_size: 128
+    num_works: 8
+    flip: true
+    shuffle: true
+    random_crop_pad: 4
+    pixel_means: 
+        - 0.4914
+        - 0.4822
+        - 0.4465
+    pixel_vars:
+        - 0.2023
+        - 0.1994
+        - 0.2010
+    valid_batch_size: 128
+    valid_num_works: 8
+LOG:
+    frequent: 1
+    weight_log: false
+    activation_log: false
+    gradient_log: false
+    sparse_rate_log: false

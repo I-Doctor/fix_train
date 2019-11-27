@@ -1,0 +1,140 @@
+!!python/object/new:easydict.EasyDict
+dictitems:
+  DATA: &id007 !!python/object/new:easydict.EasyDict
+    dictitems:
+      batch_size: 128
+      dataset: cifar10
+      flip: true
+      num_works: 8
+      pixel_means: &id003 !!python/object/apply:numpy.core.multiarray._reconstruct
+        args:
+        - &id001 !!python/name:numpy.ndarray ''
+        - !!python/tuple
+          - 0
+        - !!binary |
+          Yg==
+        state: !!python/tuple
+        - 1
+        - !!python/tuple
+          - 3
+        - &id002 !!python/object/apply:numpy.dtype
+          args:
+          - f8
+          - 0
+          - 1
+          state: !!python/tuple
+          - 3
+          - <
+          - null
+          - null
+          - null
+          - -1
+          - -1
+          - 0
+        - false
+        - !!binary |
+          F0hQ/Bhz3z+VZYhjXdzeP/p+arx0k9w/
+      pixel_vars: &id004 !!python/object/apply:numpy.core.multiarray._reconstruct
+        args:
+        - *id001
+        - !!python/tuple
+          - 0
+        - !!binary |
+          Yg==
+        state: !!python/tuple
+        - 1
+        - !!python/tuple
+          - 3
+        - *id002
+        - false
+        - !!binary |
+          24r9ZffkyT9nRGlv8IXJP+58PzVeusk/
+      random_crop_pad: 4
+      shuffle: true
+      valid_batch_size: 128
+      valid_num_works: 8
+    state:
+      batch_size: 128
+      dataset: cifar10
+      flip: true
+      num_works: 8
+      pixel_means: *id003
+      pixel_vars: *id004
+      random_crop_pad: 4
+      shuffle: true
+      valid_batch_size: 128
+      valid_num_works: 8
+  LOG: &id008 !!python/object/new:easydict.EasyDict
+    dictitems:
+      activation_log: false
+      frequent: 1
+      gradient_log: false
+      sparse_rate_log: false
+      weight_log: false
+    state:
+      activation_log: false
+      frequent: 1
+      gradient_log: false
+      sparse_rate_log: false
+      weight_log: false
+  NETWORK: &id009 !!python/object/new:easydict.EasyDict
+    dictitems:
+      asparse: false
+      asparse_cfg: null
+      batchnorm: true
+      class_num: 10
+      depth: 20
+      pruning: false
+      pruning_cfg: null
+      quantize: false
+      quantize_cfg: null
+    state:
+      asparse: false
+      asparse_cfg: null
+      batchnorm: true
+      class_num: 10
+      depth: 20
+      pruning: false
+      pruning_cfg: null
+      quantize: false
+      quantize_cfg: null
+  TRAIN: &id010 !!python/object/new:easydict.EasyDict
+    dictitems:
+      decay_step: &id005
+      - 0
+      - 81
+      - 122
+      epoch: 170
+      learning_rate: &id006
+      - 0.1
+      - 0.001
+      - 0.0001
+      momentum: 0.5
+      optimizer: SGDm
+      warmup: false
+      weight_decay: 0.0001
+    state:
+      decay_step: *id005
+      epoch: 170
+      learning_rate: *id006
+      momentum: 0.5
+      optimizer: SGDm
+      warmup: false
+      weight_decay: 0.0001
+  cuda: true
+  data_root: ''
+  parallel: true
+  random_seed: null
+  snapshot_frep: 30
+  visible_device: '0'
+state:
+  DATA: *id007
+  LOG: *id008
+  NETWORK: *id009
+  TRAIN: *id010
+  cuda: true
+  data_root: ''
+  parallel: true
+  random_seed: null
+  snapshot_frep: 30
+  visible_device: '0'

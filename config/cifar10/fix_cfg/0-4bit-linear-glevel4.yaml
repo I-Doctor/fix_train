@@ -1,0 +1,61 @@
+data_root: /home/eva_share/datasets/
+float_epoch: 1
+print_freq: 50
+NETWORK: 
+    depth: 20
+    num_classes: 10
+    batchnorm: true
+    quantize: true
+    q_cfg:
+        bw:
+            - 4
+            - 4
+            - 4
+        linear: 
+            - 0
+            - 0
+            - 0
+        signed: true
+        stochastic: true
+        dequantize: true
+        group: false
+        level:
+            - 1
+            - 1
+            - 3
+TRAIN: 
+    epoch: 70
+    optimizer: SGDm
+    learning_rate: 
+        - 0.125
+        - 0.0156
+        - 0.0015
+    decay_step:
+        - 0
+        - 81
+        - 122
+    warmup: false
+    weight_decay: 0.0001
+    momentum: 0.9
+DATA:
+    dataset: cifar10
+    batch_size: 128
+    num_works: 8
+    flip: true
+    shuffle: true
+    random_crop_pad: 4
+    pixel_means: 
+        - 0.4914
+        - 0.4822
+        - 0.4465
+    pixel_stds:
+        - 0.2023
+        - 0.1994
+        - 0.2010
+    valid_batch_size: 128
+    valid_num_works: 8
+LOG:
+    frequent: 1
+    weight_log: false
+    activation_log: false
+    gradient_log: false

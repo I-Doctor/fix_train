@@ -12,7 +12,6 @@ def create_default_cfg():
 
     # Must give the dataset root to do the training (absolute path)."
     config.data_root = ''
-    config.checkpoint = ''
     # Must give the path to save output logfile and other data."
     #config.output_dir = ''
     ''' output dir can not define with yaml because it is given every time you run the code'''
@@ -35,15 +34,17 @@ def create_default_cfg():
     config.visible_device = "0"
     ''' cuda visible device should be given every time you run the code'''
     # The epoch frequence of saving snapshot."
-    config.snapshot_freq = 30
+    config.checkpoint_freq = 20
+    # The batch frequence of output."
+    config.print_freq = 30
     # The epoch starting quantize."
-    config.float_epoch = 30
+    config.float_epoch = 0
     
     config.NETWORK = edict()
     # Depth of ResNet model."
     config.NETWORK.arch = 'resnet'
-    config.NETWORK.depth = 20
-    config.NETWORK.class_num = 10
+    config.NETWORK.depth = 18
+    config.NETWORK.num_classes = 10
     # using batch normalization when traning."
     config.NETWORK.batchnorm = True
     config.NETWORK.pretrained = False
@@ -83,7 +84,7 @@ def create_default_cfg():
     # random crop image pad (no crop if 0)
     config.DATA.random_crop_pad = 4
     config.DATA.pixel_means = np.array([0.4914, 0.4822, 0.4465])
-    config.DATA.pixel_vars  = np.array([0.2023, 0.1994, 0.2010])
+    config.DATA.pixel_stds  = np.array([0.2023, 0.1994, 0.2010])
     config.DATA.valid_batch_size = 128
     config.DATA.valid_num_works = 8
 
