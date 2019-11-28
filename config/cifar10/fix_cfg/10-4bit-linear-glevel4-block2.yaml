@@ -18,13 +18,13 @@ NETWORK:
         signed: true
         stochastic: true
         erange:
-            - mean
             - max
-            - mean
+            - max
+            - max
         group: 
+            - n
             - false
-            - false
-            - false
+            - n
         level:
             - 1
             - 1

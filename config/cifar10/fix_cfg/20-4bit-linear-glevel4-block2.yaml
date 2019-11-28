@@ -18,15 +18,15 @@ NETWORK:
         signed: true
         stochastic: true
         erange:
-            - std
             - max
-            - std
+            - max
+            - max
         group: 
+            - n
             - false
-            - false
-            - false
+            - n 
         level:
-            - 1
+            - 0
             - 1
             - 2
 TRAIN: 

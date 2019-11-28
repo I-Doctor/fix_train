@@ -22,13 +22,13 @@ NETWORK:
             - max
             - max
         group: 
+            - n
             - false
-            - false
-            - false
+            - n
         level:
-            - 1
-            - 1
-            - 3
+            - 0
+            - 0
+            - 0
 TRAIN: 
     epoch: 170
     optimizer: SGDm

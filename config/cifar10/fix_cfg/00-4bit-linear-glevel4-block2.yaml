@@ -18,17 +18,17 @@ NETWORK:
         signed: true
         stochastic: true
         erange:
-            - std
             - max
-            - mean
+            - max
+            - max
         group: 
-            - false
+            - n
             - false
             - false
         level:
-            - 2
-            - 1
-            - 3
+            - 0
+            - 0
+            - 0
 TRAIN: 
     epoch: 170
     optimizer: SGDm

@@ -8,7 +8,7 @@ NETWORK:
     quantize: true
     q_cfg:
         bw:
-            - 5
+            - 4
             - 5
             - 5
         linear: 
@@ -18,17 +18,17 @@ NETWORK:
         signed: true
         stochastic: true
         erange:
-            - std
             - max
-            - mean
+            - max
+            - max
         group: 
-            - c
+            - n
             - false
-            - c
+            - n
         level:
-            - 1
-            - 1
-            - 3
+            - 0
+            - 0
+            - 0
 TRAIN: 
     epoch: 170
     optimizer: SGDm
