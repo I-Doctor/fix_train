@@ -18,10 +18,14 @@ mkdir -p ${output_path}
 
 #--------------------run python------------------#
 #cfg_file="0-4bit-linear-glevel4"
-#cfg_file="00-4bit-linear-glevel4"
-#cfg_file="10-4bit-linear-glevel4"
-#cfg_file="20-4bit-linear-glevel4"
-cfg_file="30-4bit-linear-glevel4"
+#cfg_file="00-4bit-linear-glevel4-block"
+#cfg_file="10-4bit-linear-glevel4-block"
+#cfg_file="20-4bit-linear-glevel4-block"
+#cfg_file="30-4bit-linear-glevel4-block"
+#cfg_file="00-4bit-linear-glevel4-block2"
+#cfg_file="10-4bit-linear-glevel4-block2"
+cfg_file="20-4bit-linear-glevel4-block2"
+#cfg_file="30-4bit-linear-glevel4-block2"
 #cfg_file="0-4bit-linear-glevel4-resume"
 #cfg_file="0-4bit-linear-glevel4-evaluate"
 #cfg_file="0-8bit-linear-glevel2-resume"
@@ -31,6 +35,6 @@ python main.py				        \
 	${data_root}					\
 	${cfg_path}${cfg_file}.yaml		\
 	${output_path}					\
-    --gpu 3                         \
+    --gpu 7                         \
 	2>&1 | tee ${output_path}/${cfg_file}.log
 

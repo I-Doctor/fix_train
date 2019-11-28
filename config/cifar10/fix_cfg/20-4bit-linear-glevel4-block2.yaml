@@ -1,35 +1,47 @@
-data_root: /home/zhongkai/experiment/pruning/VGGCIFAR/datasets/
-parallel: false
-visible_device: '3'
-adense_epoch: 30
+data_root: /home/eva_share/datasets/
+float_epoch: 1
+print_freq: 50
 NETWORK: 
     depth: 20
-    class_num: 10
+    num_classes: 10
     batchnorm: true
-    quantize: false
-    quantize_cfg: null
-    pruning: false
-    pruning_cfg: null
-    asparse: true
-    asparse_cfg:
-        block_shape:
-            - 4
+    quantize: true
+    q_cfg:
+        bw:
+            - 5
+            - 5
+            - 5
+        linear: 
+            - null
+            - null
+            - null
+        signed: true
+        stochastic: true
+        erange:
+            - std
+            - max
+            - std
+        group: 
+            - false
+            - false
+            - false
+        level:
+            - 1
+            - 1
             - 2
-            - 2
-        thres_type: absolute
-        threshold: 0.5
-        non_zero: 0.25
 TRAIN: 
-    epoch: 173
+    epoch: 170
     optimizer: SGDm
     learning_rate: 
         - 0.1
         - 0.01
         - 0.001
+        - 0.0005
     decay_step:
         - 0
-        - 81
-        - 122
+        - 85
+        - 125
+        - 165
     warmup: false
     weight_decay: 0.0001
     momentum: 0.9
@@ -44,7 +56,7 @@ DATA:
         - 0.4914
         - 0.4822
         - 0.4465
-    pixel_vars:
+    pixel_stds:
         - 0.2023
         - 0.1994
         - 0.2010
@@ -55,4 +67,3 @@ LOG:
     weight_log: false
     activation_log: false
     gradient_log: false
-    sparse_rate_log: false

@@ -1,5 +1,6 @@
 # User
 *.pkl
+*.zip
 *.png
 *.pdf
 *.swp

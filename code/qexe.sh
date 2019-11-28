@@ -11,14 +11,14 @@ time=`date +"%Y%m%d_%H-%M-%S"`
 echo "Processing at time: ${time}"
 
 #--------------------mkdir-----------------------#
-output_dir_name="log_quantize_debug"
+output_dir_name="log_quantize_${time}"
 output_path="${checkpoint_path}/${output_dir_name}"
 echo "Creating output dir: ${output_path}"
 mkdir -p ${output_path}
 
 #--------------------run python------------------#
-cfg_file="d-0-4bit-linear-glevel4"
-#cfg_file="d-0-4bit-linear-glevel4-resume"
+#cfg_file="d-0-4bit-linear-glevel4"
+cfg_file="d-0-4bit-linear-glevel4-resume"
 #cfg_file="d-0-4bit-linear-glevel4-evaluate"
 #cfg_file="0-8bit-linear-glevel2-resume"
 #cfg_file="0-8bit-linear-glevel2-evaluate"

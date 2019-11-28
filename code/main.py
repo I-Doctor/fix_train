@@ -129,7 +129,7 @@ def main(argv):
     cfg.gpu = args.gpu
     cfg.multiprocessing_distributed = args.multiprocessing_distributed
 
-    print(cfg)
+    print_cfg(cfg)
     
     # check learning rate adjustment parameters are valid
     if isinstance(train_cfg.learning_rate, list) & (isinstance(train_cfg.decay_step, list)):
@@ -291,6 +291,7 @@ def main_worker(gpu, ngpus_per_node, cfg):
             parallel = checkpoint['parallel']
             best_acc1 = checkpoint['best_acc1']
             best_epo1 = checkpoint['best_epo1']
+            print("=> checkpoint best '{best_acc1}' @ {best_epo1}".format(train_cfg.resume))
             if cfg.gpu is not None:
                 # best_acc1 may be from a checkpoint from a different GPU
                 best_acc1 = best_acc1.to(cfg.gpu)
@@ -361,9 +362,10 @@ def main_worker(gpu, ngpus_per_node, cfg):
         train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset)
     else:
         train_sampler = None
-    
+
+    if_shuffle=(train_sampler is None)
     train_loader = torch.utils.data.DataLoader(
-        train_dataset, batch_size=data_cfg.batch_size, shuffle=(train_sampler is None),
+        train_dataset, batch_size=data_cfg.batch_size, shuffle=if_shuffle,
         num_workers=data_cfg.num_works, pin_memory=True, sampler=train_sampler)
     
     val_loader = torch.utils.data.DataLoader(
@@ -372,7 +374,10 @@ def main_worker(gpu, ngpus_per_node, cfg):
     
     if train_cfg.evaluate:
         validate(val_loader, model, criterion, cfg)
-        finalreport(val_loader, model, net_cfg.num_classes, cfg.cuda)
+        if data_cfg.dataset=='ILSVRC2012_img':
+            pass
+        else:
+            finalreport(val_loader, model, net_cfg.num_classes, cfg.cuda)
         return
     
     print("===start train with epoch===")
@@ -394,7 +399,7 @@ def main_worker(gpu, ngpus_per_node, cfg):
         acc1 = validate(val_loader, model, criterion, cfg)
         
         # remember best_acc1 @ best_epo1 and save checkpoint
-        if acc1 > best_acc1 and epoch > 0:
+        if acc1 > best_acc1 :
             best_acc1 = acc1
             best_epo1 = epoch 
             if not cfg.multiprocessing_distributed or \
@@ -427,7 +432,10 @@ def main_worker(gpu, ngpus_per_node, cfg):
                 }
                 torch.save(checkpoint, os.path.join(cfg.output_dir, 'checkpoint_%s.pkl'%epoch))
 
-    finalreport(val_loader, model, net_cfg.num_classes, cfg.cuda)
+    if data_cfg.dataset=='ILSVRC2012_img':
+        pass
+    else:
+        finalreport(val_loader, model, net_cfg.num_classes, cfg.cuda)
     print('BEST RESULT: %.3f%% at EPOCH: %d' % (best_acc1, best_epo1))
 
 
