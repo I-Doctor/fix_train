@@ -24,7 +24,7 @@ NETWORK:
             - 1
             - 3
 TRAIN: 
-    resume: ../checkpoint/fix_experiment/cifar/log_quantize_debug/checkpoint_best_8.pkl
+    resume: ../checkpoint/fix_experiment/imgnet/log_quantize_20191205/checkpoint_best_3.pkl
     evaluate: true
     epoch: 170
     optimizer: SGDm

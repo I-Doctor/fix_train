@@ -10,7 +10,7 @@ NETWORK:
         bw:
             - 4
             - 5
-            - 5
+            - 4
         linear: 
             - null
             - null

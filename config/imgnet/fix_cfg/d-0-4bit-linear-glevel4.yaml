@@ -27,21 +27,21 @@ TRAIN:
     epoch: 95
     optimizer: SGDm
     learning_rate: 
-        - 0.15
-        - 0.02
-        - 0.002
-        - 0.001
+        - 0.12
+        - 0.012
+        - 0.0012
+        - 0.0008
     decay_step:
         - 0
         - 30
         - 60
-        - 90
+        - 88
     warmup: false
     weight_decay: 0.0001
     momentum: 0.9
 DATA:
     dataset: ILSVRC2012_img
-    batch_size: 1024
+    batch_size: 512
     num_works: 8
     flip: true
     shuffle: true

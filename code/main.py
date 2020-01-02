@@ -291,7 +291,7 @@ def main_worker(gpu, ngpus_per_node, cfg):
             parallel = checkpoint['parallel']
             best_acc1 = checkpoint['best_acc1']
             best_epo1 = checkpoint['best_epo1']
-            print("=> checkpoint best '{best_acc1}' @ {best_epo1}".format(train_cfg.resume))
+            print("=> checkpoint best '{}' @ {}".format(best_acc1,best_epo1))
             if cfg.gpu is not None:
                 # best_acc1 may be from a checkpoint from a different GPU
                 best_acc1 = best_acc1.to(cfg.gpu)
@@ -433,6 +433,11 @@ def main_worker(gpu, ngpus_per_node, cfg):
                 torch.save(checkpoint, os.path.join(cfg.output_dir, 'checkpoint_%s.pkl'%epoch))
 
     if data_cfg.dataset=='ILSVRC2012_img':
+        acc1 = validate(val_loader, model, criterion, cfg, True)
+        acc1 = validate(val_loader, model, criterion, cfg, True)
+        acc1 = validate(val_loader, model, criterion, cfg, True)
+        acc1 = validate(val_loader, model, criterion, cfg)
+        acc1 = validate(val_loader, model, criterion, cfg)
         pass
     else:
         finalreport(val_loader, model, net_cfg.num_classes, cfg.cuda)
@@ -490,14 +495,14 @@ def train(train_loader, model, criterion, optimizer, epoch, args):
             #return
 
 
-def validate(val_loader, model, criterion, args):
+def validate(val_loader, model, criterion, args, train=False):
     batch_time = AverageMeter()
     losses = AverageMeter()
     top1 = AverageMeter()
     top5 = AverageMeter()
     
     # switch to evaluate mode
-    model.eval()
+    model.train(train)
     
     with torch.no_grad():
         end = time.time()

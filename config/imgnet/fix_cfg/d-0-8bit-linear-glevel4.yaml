@@ -1,66 +1,68 @@
-data_root: /home/eva_share/datasets/
-float_epoch: 1
+data_root: /home/eva_share/datasets/ILSVRC2012/ILSVRC2012_img_train
+float_epoch: 0
 print_freq: 50
 NETWORK: 
-    depth: 20
-    num_classes: 10
+    depth: 18
+    num_classes: 1000
     batchnorm: true
     quantize: true
     q_cfg:
         bw:
-            - 5
-            - 5
-            - 5
+            - 4
+            - 4
+            - 4
         linear: 
             - null
             - null
             - null
         signed: true
         stochastic: true
-        erange:
+        erange: 
             - max
             - max
             - max
         group: 
-            - nc
-            - false
+            - n
+            - c
             - n
         level:
             - 0
             - 0
-            - 0
+            - 1
 TRAIN: 
-    epoch: 170
+    epoch: 90 
     optimizer: SGDm
+    resume: null
+    evaluate: false
     learning_rate: 
-        - 0.1
-        - 0.01
-        - 0.001
-        - 0.0005
+        - 0.12
+        - 0.015
+        - 0.0015
+        - 0.0008
     decay_step:
         - 0
-        - 85
-        - 125
-        - 165
+        - 27
+        - 55
+        - 75
     warmup: false
     weight_decay: 0.0001
     momentum: 0.9
 DATA:
-    dataset: cifar10
-    batch_size: 128
+    dataset: ILSVRC2012_img
+    batch_size: 512
     num_works: 8
     flip: true
     shuffle: true
     random_crop_pad: 4
     pixel_means: 
-        - 0.4914
-        - 0.4822
-        - 0.4465
+        - 0.485
+        - 0.456
+        - 0.406
     pixel_stds:
-        - 0.2023
-        - 0.1994
-        - 0.2010
-    valid_batch_size: 128
+        - 0.229
+        - 0.224
+        - 0.225
+    valid_batch_size: 256
     valid_num_works: 8
 LOG:
     frequent: 1
