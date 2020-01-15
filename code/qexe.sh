@@ -17,10 +17,9 @@ echo "Creating output dir: ${output_path}"
 mkdir -p ${output_path}
 
 #--------------------run python------------------#
-#cfg_file="d-0-4bit-linear-glevel4"
-#cfg_file="d-0-8bit-linear-glevel4"
+cfg_file="d-0-8bit-linear-glevel4"
 #cfg_file="d-0-8bit-linear-glevel4-evaluate"
-cfg_file="d-0-8bit-linear-glevel4-resume"
+#cfg_file="d-0-8bit-linear-glevel4-resume"
 #cfg_file="d-0-4bit-linear-glevel4-resume"
 #cfg_file="d-0-4bit-linear-glevel4-evaluate"
 #cfg_file="0-8bit-linear-glevel2-resume"

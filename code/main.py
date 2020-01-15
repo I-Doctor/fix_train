@@ -380,6 +380,13 @@ def main_worker(gpu, ngpus_per_node, cfg):
             finalreport(val_loader, model, net_cfg.num_classes, cfg.cuda)
         return
     
+    if log_cfg is not None:
+        print("===creat hook_ctrls===")
+        a_hooks = Hook_ctrl(model, 'a')
+        w_hooks = Hook_ctrl(model, 'w')
+        g_hooks = Hook_ctrl(model, 'g')
+        hooks = [a_hooks,w_hooks,g_hooks]
+        #hooks = [a_hooks]
     print("===start train with epoch===")
     for epoch in range(START_epoch, train_cfg.epoch):
         if cfg.distributed:
@@ -393,7 +400,19 @@ def main_worker(gpu, ngpus_per_node, cfg):
                 model.enable_quantize()
         
         # train for one epoch
-        train(train_loader, model, criterion, optimizer, epoch, cfg)
+        if epoch % log_cfg.frequent == 0:
+            a_hooks.hook_insert()
+            w_hooks.hook_insert()
+            g_hooks.hook_insert()
+            train(train_loader, model, criterion, optimizer, epoch, cfg, hooks)
+            a_checkpoint = os.path.join(cfg.output_dir, 'checkpoint_a_%s.h5'%(epoch))
+            w_checkpoint = os.path.join(cfg.output_dir, 'checkpoint_w_%s.h5'%(epoch))
+            g_checkpoint = os.path.join(cfg.output_dir, 'checkpoint_g_%s.h5'%(epoch))
+            a_hooks.save(ctype=[], output_path = a_checkpoint, resume = False)
+            w_hooks.save(ctype=[], output_path = w_checkpoint, resume = False)
+            g_hooks.save(ctype=[], output_path = g_checkpoint, resume = False)
+        else:
+            train(train_loader, model, criterion, optimizer, epoch, cfg)
         
         # evaluate on validation set
         acc1 = validate(val_loader, model, criterion, cfg)

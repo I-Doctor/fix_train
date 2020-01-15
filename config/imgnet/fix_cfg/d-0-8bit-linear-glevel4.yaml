@@ -37,7 +37,7 @@ TRAIN:
     learning_rate: 
         - 0.12
         - 0.015
-        - 0.0015
+        - 0.0012
         - 0.0008
     decay_step:
         - 0
@@ -65,7 +65,7 @@ DATA:
     valid_batch_size: 256
     valid_num_works: 8
 LOG:
-    frequent: 1
+    frequent: 29
     weight_log: false
     activation_log: false
     gradient_log: false

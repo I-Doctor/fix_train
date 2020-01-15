@@ -39,25 +39,48 @@ class Hooker:
         """
         Insert hooks into pytorch model
         """
-        def register_hook(module):#may be can't add self in register_hook func
 
-            def a_hook(module, input, output):
-                name = ''
-                for key, val in names.items():
-                    #print(val)
-                    #print(module)
-                    if val == module:
-                        name = key
-  
-                # <class 'torch.nn.modules.conv.Conv2d'>
-                class_name = str(module.__class__).split('.')[-1].split("'")[0]
-                module_idx = len(self.store_list)
-                m_key = module_idx + 1
-                self.store_list[m_key] = OrderedDict()
-                self.store_list[m_key]['name'] = name
-                self.store_list[m_key]['class_name'] = class_name
-                self.store_list[m_key]['output'] = output.data.cpu().numpy()
+        def register_hook(module): 
+            """
+            register_hook func is to insert hook
+            check module with names dict and create named hook to insert
+            """
+            def create_hook(hook_name,hook_type):
+                def new_hook(module, input, output):
+                    name = hook_name
+                    '''
+                    for key, val in names.items():
+                        #print(val)
+                        #print(module)
+                        if val == module:
+                            name = key
+                    '''
+                    # <class 'torch.nn.modules.conv.Conv2d'>
+                    class_name = str(module.__class__).split('.')[-1].split("'")[0]
+                    if hook_type == 'w':
+                        if hasattr(module,'weight'):
+                            module_idx = len(self.store_list)
+                            m_key = module_idx + 1
+                            self.store_list[m_key] = OrderedDict()
+                            self.store_list[m_key]['name'] = name
+                            self.store_list[m_key]['class_name'] = class_name
+                            self.store_list[m_key]['device'] = str(module.weight.device)
+                            self.store_list[m_key]['raw_data'] = module.weight.data.cpu().numpy()
+                            if module.bias is not None:
+                                self.store_list[m_key]['bias'] = module.bias.data.cpu().numpy()
+                            else:
+                                self.store_list[m_key]['bias'] = None
+                    else:
+                        module_idx = len(self.store_list)
+                        m_key = module_idx + 1
+                        self.store_list[m_key] = OrderedDict()
+                        self.store_list[m_key]['name'] = name
+                        self.store_list[m_key]['class_name'] = class_name
+                        self.store_list[m_key]['device'] = str(output.device)
+                        self.store_list[m_key]['raw_data'] = output.data.cpu().numpy()
 
+                return new_hook
+            '''
             def g_hook(module, input_grad, output_grad):
                 name = ''
                 for key, val in names.items():
@@ -91,16 +114,20 @@ class Hooker:
                         self.store_list[m_key]['bias'] = module.bias.data.cpu().numpy()
                     else:
                         self.store_list[m_key]['bias'] = None
+            '''
 
             if not isinstance(module, nn.Sequential) and \
                     not isinstance(module, nn.ModuleList) and \
                     not (module == self.model):
+                for key, val in names.items():
+                    if val == module:
+                        hook_name = key
                 if self.vtype == 'a':
-                    self.hooks.append(module.register_forward_hook(a_hook))
+                    self.hooks.append(module.register_forward_hook(create_hook(hook_name,self.vtype)))
                 elif self.vtype == 'g':
-                    self.hooks.append(module.register_backward_hook(g_hook))
+                    self.hooks.append(module.register_backward_hook(create_hook(hook_name,self.vtype)))
                 elif self.vtype == 'w':
-                    self.hooks.append(module.register_forward_hook(w_hook))
+                    self.hooks.append(module.register_forward_hook(create_hook(hook_name,self.vtype)))
                 else:
                     raise ValueError('vtype error: must be a,g,w')
 
@@ -169,7 +196,17 @@ class Hooker:
         }   
 
         if len(ctype) == 0:
-            raise ValueError('need to give ctype: a list of value need to be calculated, including mean,std,max,min,p25,p50,p75')
+            print("Will save all raw data")
+            for i in range(1, len(self.store_list)+1):
+                data = self.store_list[i]
+                if data['class_name'] in ['Conv2d','ReLU','BatchNorm2d','Linear']:
+                    #print("debug",data['name'])
+                    with h5py.File(output_path, 'a') as h:
+                        h.create_dataset(data['name']+data['device'], data=data['raw_data'])
+                    if self.vtype == 'w':
+                        if data['bias'] is not None:
+                            with h5py.File(output_path, 'a') as h:
+                                h.create_dataset(data['name']+data['device']+'_b', data=data['bias'])
         else:
             for i in range(1, len(self.store_list)+1):
                 data = self.store_list[i]
