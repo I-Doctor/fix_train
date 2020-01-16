@@ -380,13 +380,14 @@ def main_worker(gpu, ngpus_per_node, cfg):
             finalreport(val_loader, model, net_cfg.num_classes, cfg.cuda)
         return
     
-    if log_cfg is not None:
+    if log_cfg.frequent < 200:
         print("===creat hook_ctrls===")
         a_hooks = Hook_ctrl(model, 'a')
-        w_hooks = Hook_ctrl(model, 'w')
-        g_hooks = Hook_ctrl(model, 'g')
-        hooks = [a_hooks,w_hooks,g_hooks]
-        #hooks = [a_hooks]
+        #w_hooks = Hook_ctrl(model, 'w')
+        #g_hooks = Hook_ctrl(model, 'g')
+        #e_hooks = Hook_ctrl(model, 'e')
+        #hooks = [a_hooks,w_hooks,e_hooks,g_hooks]
+        hooks = [a_hooks]
     print("===start train with epoch===")
     for epoch in range(START_epoch, train_cfg.epoch):
         if cfg.distributed:
@@ -402,15 +403,18 @@ def main_worker(gpu, ngpus_per_node, cfg):
         # train for one epoch
         if epoch % log_cfg.frequent == 0:
             a_hooks.hook_insert()
-            w_hooks.hook_insert()
-            g_hooks.hook_insert()
+            #w_hooks.hook_insert()
+            #g_hooks.hook_insert()
+            #e_hooks.hook_insert()
             train(train_loader, model, criterion, optimizer, epoch, cfg, hooks)
             a_checkpoint = os.path.join(cfg.output_dir, 'checkpoint_a_%s.h5'%(epoch))
-            w_checkpoint = os.path.join(cfg.output_dir, 'checkpoint_w_%s.h5'%(epoch))
-            g_checkpoint = os.path.join(cfg.output_dir, 'checkpoint_g_%s.h5'%(epoch))
+            #w_checkpoint = os.path.join(cfg.output_dir, 'checkpoint_w_%s.h5'%(epoch))
+            #g_checkpoint = os.path.join(cfg.output_dir, 'checkpoint_g_%s.h5'%(epoch))
+            #e_checkpoint = os.path.join(cfg.output_dir, 'checkpoint_e_%s.h5'%(epoch))
             a_hooks.save(ctype=[], output_path = a_checkpoint, resume = False)
-            w_hooks.save(ctype=[], output_path = w_checkpoint, resume = False)
-            g_hooks.save(ctype=[], output_path = g_checkpoint, resume = False)
+            #w_hooks.save(ctype=[], output_path = w_checkpoint, resume = False)
+            #g_hooks.save(ctype=[], output_path = g_checkpoint, resume = False)
+            #e_hooks.save(ctype=[], output_path = e_checkpoint, resume = False)
         else:
             train(train_loader, model, criterion, optimizer, epoch, cfg)
         
@@ -463,7 +467,7 @@ def main_worker(gpu, ngpus_per_node, cfg):
     print('BEST RESULT: %.3f%% at EPOCH: %d' % (best_acc1, best_epo1))
 
 
-def train(train_loader, model, criterion, optimizer, epoch, args):
+def train(train_loader, model, criterion, optimizer, epoch, args, hooks=None):
     batch_time = AverageMeter()
     data_time = AverageMeter()
     losses = AverageMeter()
@@ -476,6 +480,12 @@ def train(train_loader, model, criterion, optimizer, epoch, args):
     print("---train(epoch)---")
     end = time.time()
     for i, (inputs, target) in enumerate(train_loader):
+
+        if i == 1 and hooks is not None:
+            print("--remove hooks--")
+            for h in hooks:
+                h.remove()
+
         # measure data loading time
         data_time.update(time.time() - end)
         

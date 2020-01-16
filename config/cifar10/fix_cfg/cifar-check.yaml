@@ -45,7 +45,7 @@ TRAIN:
     momentum: 0.9
 DATA:
     dataset: cifar10
-    batch_size: 512
+    batch_size: 128
     num_works: 8
     flip: true
     shuffle: true

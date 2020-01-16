@@ -1,7 +1,12 @@
 # User
 *.pkl
+*.h5
+*.mat
+*.met
+*.csv
 *.zip
 *.png
+*.jpg
 *.pdf
 *.swp
 
