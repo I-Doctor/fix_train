@@ -8,7 +8,7 @@ from .logger import Logger
 from .plot import *
 
 import matplotlib
-matplotlib.use('Tkagg') #otherwise Linux server will crash using matplotlib
+#matplotlib.use('Tkagg') #otherwise Linux server will crash using matplotlib
 import matplotlib.pyplot as plt
 
 class Hook_ctrl:

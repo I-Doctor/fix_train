@@ -65,7 +65,4 @@ DATA:
     valid_batch_size: 256
     valid_num_works: 8
 LOG:
-    frequent: 29
-    weight_log: false
-    activation_log: false
-    gradient_log: false
+    frequent: 200

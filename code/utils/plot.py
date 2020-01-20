@@ -2,7 +2,7 @@ import os
 import numpy as np
 import sys
 import matplotlib
-matplotlib.use('Tkagg') # otherwise Linux server will crash using matplotlib
+#matplotlib.use('Tkagg') # otherwise Linux server will crash using matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 

@@ -113,8 +113,13 @@ class Quantize_W(Function):
         qmin = -(2.**(num_bits - 1)) if signed else 0.
         qmax = qmin + 2.**(num_bits)
         qrange = qmax-qmin
-        range_value = max_value - min_value
-        zero_point = min_value
+        #range_value = max_value - min_value
+        if max_value>(-min_value):
+            range_value = 2*max_value
+            zero_point = -max_value
+        else:
+            range_value = -2*min_value
+            zero_point = min_value
         scale = range_value / qrange
         half = 2.**(num_bits -level -1)
         hscale = 2.**(level)

@@ -401,7 +401,7 @@ def main_worker(gpu, ngpus_per_node, cfg):
                 model.enable_quantize()
         
         # train for one epoch
-        if epoch % log_cfg.frequent == 0:
+        if epoch % log_cfg.frequent == 0 and log_cfg.frequent<200 :
             a_hooks.hook_insert()
             #w_hooks.hook_insert()
             #g_hooks.hook_insert()
