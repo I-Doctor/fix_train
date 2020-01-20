@@ -1,6 +1,9 @@
 import numpy as np
 import h5py
 
+dir = 'log_quantize_check-d/'
+#dir = 'log_quantize_check/'
+
 #filename = 'checkpoint_w_0.h5'
 #filename = 'checkpoint_a_0.h5'
 filename = 'checkpoint_e_0.h5'
@@ -11,7 +14,7 @@ filename = 'checkpoint_e_0.h5'
 #filename = 'checkpoint_e_2.h5'
 #filename = 'checkpoint_g_2.h5'
 
-f = h5py.File(filename)
+f = h5py.File(dir+filename)
 keys = f.keys()
 for layer_name in keys:
     layer_data = f[layer_name]

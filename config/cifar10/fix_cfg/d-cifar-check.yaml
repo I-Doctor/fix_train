@@ -22,9 +22,9 @@ NETWORK:
             - max
             - max
         group: 
-            - n
-            - c
-            - n
+            - nc
+            - nc
+            - nc
         level:
             - 0
             - 0
@@ -62,6 +62,8 @@ DATA:
     valid_num_works: 8
 LOG:
     frequent: 2
-    weight_log: false
-    activation_log: false
-    gradient_log: false
+    types:
+        - a
+        - w
+        - g
+        - e
