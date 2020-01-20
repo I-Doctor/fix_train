@@ -114,12 +114,9 @@ class Quantize_W(Function):
         qmax = qmin + 2.**(num_bits)
         qrange = qmax-qmin
         #range_value = max_value - min_value
-        if max_value>(-min_value):
-            range_value = 2*max_value
-            zero_point = -max_value
-        else:
-            range_value = -2*min_value
-            zero_point = min_value
+        abs_max = torch.max(max_value, -min_value)
+        range_value = 2*abs_max
+        zero_point = -1*abs_max
         scale = range_value / qrange
         half = 2.**(num_bits -level -1)
         hscale = 2.**(level)
@@ -163,7 +160,6 @@ class Quantize_W(Function):
             raise ValueError('wrong linear config')
 
         return output
-
 
     @staticmethod
     def backward(ctx, grad_output):
@@ -283,8 +279,11 @@ class Quantize_A(Function):
         qmin = -(2.**(num_bits - 1)) if signed else 0.
         qmax = qmin + 2.**(num_bits)
         qrange = qmax - qmin
-        range_value = max_value - min_value
-        zero_point = min_value
+        #range_value = max_value - min_value
+        #zero_point = min_value
+        abs_max = torch.max(max_value, -min_value)
+        range_value = 2*abs_max
+        zero_point = -1*abs_max
         scale = range_value / qrange
         half = 2.**(num_bits -level -1) if signed else 2.**(num_bits -level)
         hscale = 2.**(level)
@@ -460,8 +459,11 @@ class Quantize_G(Function):
         qmin = -(2.**(num_bits - 1)) if ctx.signed else 0.
         qmax = qmin + 2.**(num_bits)
         qrange = qmax - qmin
-        zero_point = min_value
-        range_value = max_value - min_value
+        #zero_point = min_value
+        #range_value = max_value - min_value
+        abs_max = torch.max(max_value, -min_value)
+        range_value = 2*abs_max
+        zero_point = -1*abs_max
         scale = (range_value/qrange)
         half = 2.**(num_bits-ctx.level-1)   # half is near n bits number
         hscale = 2.**(ctx.level)
