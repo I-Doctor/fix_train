@@ -8,7 +8,7 @@ NETWORK:
     quantize: true
     q_cfg:
         bw:
-            - 4
+            - 5
             - 5
             - 5
         linear: 
@@ -23,12 +23,12 @@ NETWORK:
             - max
         group: 
             - n
-            - false
+            - nc
             - n
         level:
             - 0
             - 0
-            - 0
+            - 1
 TRAIN: 
     epoch: 170
     optimizer: SGDm
@@ -63,7 +63,4 @@ DATA:
     valid_batch_size: 128
     valid_num_works: 8
 LOG:
-    frequent: 1
-    weight_log: false
-    activation_log: false
-    gradient_log: false
+    frequent: 200

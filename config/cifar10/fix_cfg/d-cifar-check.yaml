@@ -22,30 +22,32 @@ NETWORK:
             - max
             - max
         group: 
+            - n
             - nc
-            - nc
-            - nc
+            - n
         level:
-            - 0
-            - 0
+            - 1
+            - 1
             - 1
 TRAIN: 
-    epoch: 3
+    epoch: 180
     optimizer: SGDm
     learning_rate: 
         - 0.125
         - 0.0156
         - 0.0015
+        - 0.0008
     decay_step:
         - 0
         - 81
         - 122
+        - 160
     warmup: false
     weight_decay: 0.0001
     momentum: 0.9
 DATA:
     dataset: cifar10
-    batch_size: 512
+    batch_size: 128
     num_works: 8
     flip: true
     shuffle: true
@@ -61,9 +63,8 @@ DATA:
     valid_batch_size: 256
     valid_num_works: 8
 LOG:
-    frequent: 2
+    frequent: 30
     types:
         - a
         - w
-        - g
         - e

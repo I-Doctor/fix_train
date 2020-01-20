@@ -11,18 +11,18 @@ time=`date +"%Y%m%d_%H-%M-%S"`
 echo "Processing at time: ${time}"
 
 #--------------------mkdir-----------------------#
-output_dir_name="log_quantize_check-d"
+output_dir_name="log_quantize_${time}"
 output_path="${checkpoint_path}/${output_dir_name}"
 echo "Creating output dir: ${output_path}"
 mkdir -p ${output_path}
 
 #--------------------run python------------------#
-cfg_file="d-cifar-check"
+cfg_file="20-4bit-linear-glevel4-block"
 cfg_path="../config/cifar10/fix_cfg/"
-python -u main.py			        \
+python -u main.py				        \
 	${data_root}					\
 	${cfg_path}${cfg_file}.yaml		\
 	${output_path}					\
-    --gpu 5                         \
+    --gpu 2                         \
 	2>&1 | tee ${output_path}/${cfg_file}.log
 

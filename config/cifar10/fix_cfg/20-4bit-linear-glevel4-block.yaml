@@ -9,8 +9,8 @@ NETWORK:
     q_cfg:
         bw:
             - 4
-            - 5
-            - 5
+            - 4
+            - 4
         linear: 
             - null
             - null
@@ -63,7 +63,4 @@ DATA:
     valid_batch_size: 128
     valid_num_works: 8
 LOG:
-    frequent: 1
-    weight_log: false
-    activation_log: false
-    gradient_log: false
+    frequent: 200

@@ -18,5 +18,11 @@ f = h5py.File(dir+filename)
 keys = f.keys()
 for layer_name in keys:
     layer_data = f[layer_name]
-    print(layer_name)
-    print('layer1_shape',layer_data.shape)
+    layer_shape = layer_data.shape
+    if len(layer_shape) == 4:
+        print(layer_name)
+        print('  layer_shape',layer_data.shape)
+        print('  layer_value',layer_data[0,1,0:2,0:2])
+    #print(layer_name)
+    #print('  layer_shape',layer_data.shape)
+
