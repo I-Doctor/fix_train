@@ -11,7 +11,7 @@ time=`date +"%Y%m%d_%H-%M-%S"`
 echo "Processing at time: ${time}"
 
 #--------------------mkdir-----------------------#
-output_dir_name="log_quantize_checkd"
+output_dir_name="log_quantize_check-d"
 output_path="${checkpoint_path}/${output_dir_name}"
 echo "Creating output dir: ${output_path}"
 mkdir -p ${output_path}

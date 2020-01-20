@@ -89,11 +89,8 @@ def create_default_cfg():
     config.DATA.valid_num_works = 8
 
     config.LOG = edict()
-    config.LOG.frequent = 1
-    config.LOG.weight_log = False
-    config.LOG.activation_log = False
-    config.LOG.gradient_log = False
-    config.LOG.sparse_rate_log = False
+    config.LOG.frequent = 200
+    config.LOG.types = None
 
     return config
 

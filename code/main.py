@@ -381,13 +381,11 @@ def main_worker(gpu, ngpus_per_node, cfg):
         return
     
     if log_cfg.frequent < 200:
-        print("===creat hook_ctrls===")
-        a_hooks = Hook_ctrl(model, 'a')
-        #w_hooks = Hook_ctrl(model, 'w')
-        #g_hooks = Hook_ctrl(model, 'g')
-        #e_hooks = Hook_ctrl(model, 'e')
-        #hooks = [a_hooks,w_hooks,e_hooks,g_hooks]
-        hooks = [a_hooks]
+        print("===creating hook_ctrls===")
+        hooks = []
+        for t in log_cfg.types:
+            hooks.append(Hook_ctrl(model, t))
+
     print("===start train with epoch===")
     for epoch in range(START_epoch, train_cfg.epoch):
         if cfg.distributed:
@@ -402,19 +400,17 @@ def main_worker(gpu, ngpus_per_node, cfg):
         
         # train for one epoch
         if epoch % log_cfg.frequent == 0 and log_cfg.frequent<200 :
-            a_hooks.hook_insert()
-            #w_hooks.hook_insert()
-            #g_hooks.hook_insert()
-            #e_hooks.hook_insert()
+            for h in hooks:
+                h.hook_insert()
             train(train_loader, model, criterion, optimizer, epoch, cfg, hooks)
-            a_checkpoint = os.path.join(cfg.output_dir, 'checkpoint_a_%s.h5'%(epoch))
-            #w_checkpoint = os.path.join(cfg.output_dir, 'checkpoint_w_%s.h5'%(epoch))
-            #g_checkpoint = os.path.join(cfg.output_dir, 'checkpoint_g_%s.h5'%(epoch))
-            #e_checkpoint = os.path.join(cfg.output_dir, 'checkpoint_e_%s.h5'%(epoch))
-            a_hooks.save(ctype=[], output_path = a_checkpoint, resume = False)
-            #w_hooks.save(ctype=[], output_path = w_checkpoint, resume = False)
-            #g_hooks.save(ctype=[], output_path = g_checkpoint, resume = False)
-            #e_hooks.save(ctype=[], output_path = e_checkpoint, resume = False)
+            hook_files = {
+                'a' : os.path.join(cfg.output_dir, 'checkpoint_a_%s.h5'%(epoch)),
+                'w' : os.path.join(cfg.output_dir, 'checkpoint_w_%s.h5'%(epoch)),
+                'g' : os.path.join(cfg.output_dir, 'checkpoint_g_%s.h5'%(epoch)),
+                'e' : os.path.join(cfg.output_dir, 'checkpoint_e_%s.h5'%(epoch))
+            }
+            for i,h in enumerate(hooks):
+                h.save(ctype=[], output_path = hook_files[log_cfg.types[i]], resume = False)
         else:
             train(train_loader, model, criterion, optimizer, epoch, cfg)
         
