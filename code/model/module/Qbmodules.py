@@ -115,6 +115,7 @@ class Quantize_W(Function):
         qrange = qmax-qmin
         #range_value = max_value - min_value
         max_value = torch.where(max_value.lt(0.0001), max_value+0.0001, max_value)
+        max_value = torch.pow(2, torch.log2(max_value).floor_())
         abs_max = torch.max(max_value, -min_value)
         range_value = 2*abs_max
         zero_point = -1*abs_max
@@ -289,6 +290,7 @@ class Quantize_A(Function):
         #range_value = max_value - min_value
         #zero_point = min_value
         max_value = torch.where(max_value.lt(0.0001), max_value+0.0001, max_value)
+        max_value = torch.pow(2, torch.log2(max_value).floor_())
         abs_max = torch.max(max_value, -min_value)
         range_value = 2*abs_max if signed else abs_max
         zero_point = -1*abs_max if signed else 0.
@@ -493,6 +495,7 @@ class Quantize_G(Function):
         #zero_point = min_value
         #range_value = max_value - min_value
         max_value = torch.where(max_value.lt(0.00000001), max_value+0.00000001, max_value)
+        max_value = torch.pow(2, torch.log2(max_value).floor_())
         abs_max = torch.max(max_value, -min_value)
         range_value = 2*abs_max
         zero_point = -1*abs_max
