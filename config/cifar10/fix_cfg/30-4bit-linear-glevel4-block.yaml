@@ -8,9 +8,9 @@ NETWORK:
     quantize: true
     q_cfg:
         bw:
-            - 5
-            - 5
-            - 5
+            - 3
+            - 3
+            - 3
         linear: 
             - null
             - null
@@ -28,7 +28,7 @@ NETWORK:
         level:
             - 1
             - 1
-            - 2
+            - 1
 TRAIN: 
     epoch: 170
     optimizer: SGDm

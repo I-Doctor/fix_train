@@ -8,9 +8,9 @@ NETWORK:
     quantize: true
     q_cfg:
         bw:
-            - 4
-            - 4
-            - 4
+            - 2
+            - 2
+            - 2
         linear: 
             - null
             - null
@@ -23,7 +23,7 @@ NETWORK:
             - max
         group: 
             - n
-            - nc
+            - n
             - n
         level:
             - 1
@@ -63,7 +63,7 @@ DATA:
     valid_batch_size: 256
     valid_num_works: 8
 LOG:
-    frequent: 30
+    frequent: 200
     types:
         - a
         - w

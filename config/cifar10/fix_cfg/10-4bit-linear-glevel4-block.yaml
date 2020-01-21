@@ -26,8 +26,8 @@ NETWORK:
             - nc
             - n
         level:
-            - 0
-            - 0
+            - 1
+            - 1
             - 1
 TRAIN: 
     epoch: 170

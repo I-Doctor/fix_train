@@ -1,5 +1,5 @@
 data_root: /home/eva_share/datasets/
-float_epoch: 200
+float_epoch: 1
 print_freq: 50
 NETWORK: 
     depth: 20
@@ -8,9 +8,9 @@ NETWORK:
     quantize: true
     q_cfg:
         bw:
-            - 4
-            - 4
-            - 4
+            - 2
+            - 2
+            - 2
         linear: 
             - null
             - null
@@ -22,12 +22,12 @@ NETWORK:
             - max
             - max
         group: 
-            - nt
-            - nc
-            - nt
+            - n
+            - c
+            - n
         level:
-            - 0
-            - 0
+            - 1
+            - 1
             - 1
 TRAIN: 
     epoch: 180
@@ -63,7 +63,7 @@ DATA:
     valid_batch_size: 256
     valid_num_works: 8
 LOG:
-    frequent: 30
+    frequent: 200
     types:
         - e
         - a
