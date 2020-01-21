@@ -8,9 +8,9 @@ NETWORK:
     quantize: true
     q_cfg:
         bw:
-            - 4
-            - 4
-            - 4
+            - 5
+            - 5
+            - 5
         linear: 
             - null
             - null
@@ -33,7 +33,7 @@ TRAIN:
     epoch: 170
     optimizer: SGDm
     learning_rate: 
-        - 0.1
+        - 0.12
         - 0.01
         - 0.0009
         - 0.0005
