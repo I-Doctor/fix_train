@@ -9,8 +9,8 @@ NETWORK:
     q_cfg:
         bw:
             - 4
-            - 8
             - 4
+            - 8
         linear: 
             - null
             - null
@@ -26,19 +26,19 @@ NETWORK:
             - c
             - n
         level:
-            - 0
-            - 0
+            - 1
+            - 1
             - 1
 TRAIN: 
-    epoch: 83 
+    epoch: 90 
     optimizer: SGDm
-    resume: ../checkpoint/fix_experiment/imgnet/log_quantize_20191205_16-42-54/checkpoint_best_3.pkl
-    evaluate: true
+    resume: ../checkpoint/fix_experiment/imgnet/log_quantize_20200104/checkpoint_60.pkl
+    evaluate: false
     learning_rate: 
-        - 0.0008
-        - 0.0008
-        - 0.0008
-        - 0.0004
+        - 0.0012
+        - 0.0012
+        - 0.0012
+        - 0.0006
     decay_step:
         - 0
         - 27
@@ -65,7 +65,4 @@ DATA:
     valid_batch_size: 256
     valid_num_works: 8
 LOG:
-    frequent: 1
-    weight_log: false
-    activation_log: false
-    gradient_log: false
+    frequent: 200
