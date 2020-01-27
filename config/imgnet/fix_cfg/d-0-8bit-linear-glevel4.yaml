@@ -26,8 +26,8 @@ NETWORK:
             - c
             - n
         level:
-            - 0
-            - 0
+            - 1
+            - 1
             - 1
 TRAIN: 
     epoch: 90 
@@ -35,10 +35,10 @@ TRAIN:
     resume: null
     evaluate: false
     learning_rate: 
-        - 0.12
-        - 0.015
+        - 0.1
+        - 0.012
         - 0.0012
-        - 0.0008
+        - 0.0006
     decay_step:
         - 0
         - 27
