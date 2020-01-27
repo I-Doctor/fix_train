@@ -18,7 +18,7 @@ class Quantize_W(Function):
 
     @staticmethod
     def forward(ctx, input, num_bits=8, linear=None, signed=True, stochastic=True, 
-                erange='max', group=False, level=1):
+                erange='max', group=False, level=1, hard='real'):
         ''' Forward function
                 input           : unquantized weight       
                 num_bits        : bw of quantized weight 
@@ -113,12 +113,18 @@ class Quantize_W(Function):
         qmin = -(2.**(num_bits - 1)) if signed else 0.
         qmax = qmin + 2.**(num_bits)
         qrange = qmax-qmin
-        #range_value = max_value - min_value
-        max_value = torch.where(max_value.lt(0.0001), max_value+0.0001, max_value)
-        max_value = torch.pow(2, torch.log2(max_value).floor_())
-        abs_max = torch.max(max_value, -min_value)
-        range_value = 2*abs_max
-        zero_point = -1*abs_max
+        max_value = torch.where(max_value.lt(0.0001), max_value+0.0001, max_value) #non-zero
+        if hard == 'pow':   # ceil round to pow of 2
+            max_value = torch.pow(2, torch.log2(max_value).ceil_())
+        elif hard == 'powf':   # floor round to pow of 2
+            max_value = torch.pow(2, torch.log2(max_value).floor_())
+        if hard == 'pow' or hard == 'unbias':   # range=2*max if pow or unbias
+            abs_max = torch.max(max_value, -min_value)
+            range_value = 2*abs_max
+            zero_point = -1*abs_max
+        else:       # range=max-min if else
+            range_value = max_value - min_value
+            zero_point = min_value
         scale = range_value / qrange
         half = 2.**(num_bits -level -1)
         hscale = 2.**(level)
@@ -177,7 +183,7 @@ class Quantize_W(Function):
         '''
         grad_input = grad_output.clone()
 
-        return grad_input, None, None, None, None, None, None, None
+        return grad_input, None, None, None, None, None, None, None, None
 
 
 
@@ -188,7 +194,7 @@ class Quantize_A(Function):
 
     @staticmethod
     def forward(ctx, input, num_bits=8, linear=None, signed=False, 
-                stochastic=True, erange='max', group=False, level=2):
+                stochastic=True, erange='max', group=False, level=2, hard='real'):
         ''' Function arguements:
                 input       : unquantized input         
                 num_bits    : bw of quantized input
@@ -287,13 +293,18 @@ class Quantize_A(Function):
         qmin = -(2.**(num_bits - 1)) if signed else 0.
         qmax = qmin + 2.**(num_bits)
         qrange = qmax - qmin
-        #range_value = max_value - min_value
-        #zero_point = min_value
         max_value = torch.where(max_value.lt(0.0001), max_value+0.0001, max_value)
-        max_value = torch.pow(2, torch.log2(max_value).floor_())
-        abs_max = torch.max(max_value, -min_value)
-        range_value = 2*abs_max if signed else abs_max
-        zero_point = -1*abs_max if signed else 0.
+        if hard == 'pow':   # ceil round to pow of 2
+            max_value = torch.pow(2, torch.log2(max_value).ceil_())
+        elif hard == 'powf':   # floor round to pow of 2
+            max_value = torch.pow(2, torch.log2(max_value).floor_())
+        if hard == 'pow' or hard == 'unbias':   # range=2*max if pow or unbias
+            abs_max = torch.max(max_value, -min_value)
+            range_value = 2*abs_max
+            zero_point = -1*abs_max
+        else:       # range=max-min if else
+            range_value = max_value - min_value
+            zero_point = min_value
         scale = range_value / qrange
         half = 2.**(num_bits -level -1) if signed else 2.**(num_bits -level)
         hscale = 2.**(level)
@@ -365,7 +376,7 @@ class Quantize_A(Function):
         #torch.set_printoptions(precision=8)
         #print("debug grad of input:",grad_input.max(), grad_input.min(), grad_input.shape)
 
-        return grad_input, None, None, None, None, None, None, None
+        return grad_input, None, None, None, None, None, None, None, None
 
 
 
@@ -377,7 +388,7 @@ class Quantize_G(Function):
 
     @staticmethod
     def forward(ctx, input, num_bits=8, linear=None, signed=True, stochastic=True, 
-                erange=True, group=False, level=3):
+                erange=True, group=False, level=3, hard='real'):
         ''' Function arguements:
                 input       : activation input                     
                 num_bits    : bw of quantized gradient 
@@ -392,6 +403,7 @@ class Quantize_G(Function):
         ctx.erange     = erange
         ctx.group      = group
         ctx.level      = level
+        ctx.hard       = hard
 
         output = input.clone()
 
@@ -492,13 +504,18 @@ class Quantize_G(Function):
         qmin = -(2.**(num_bits - 1)) if ctx.signed else 0.
         qmax = qmin + 2.**(num_bits)
         qrange = qmax - qmin
-        #zero_point = min_value
-        #range_value = max_value - min_value
         max_value = torch.where(max_value.lt(0.00000001), max_value+0.00000001, max_value)
-        max_value = torch.pow(2, torch.log2(max_value).floor_())
-        abs_max = torch.max(max_value, -min_value)
-        range_value = 2*abs_max
-        zero_point = -1*abs_max
+        if ctx.hard == 'pow':   # ceil round to pow of 2
+            max_value = torch.pow(2, torch.log2(max_value).ceil_())
+        elif ctx.hard == 'powf':   # floor round to pow of 2
+            max_value = torch.pow(2, torch.log2(max_value).floor_())
+        if ctx.hard == 'pow' or ctx.hard == 'unbias':   # range=2*max if pow or unbias
+            abs_max = torch.max(max_value, -min_value)
+            range_value = 2*abs_max
+            zero_point = -1*abs_max
+        else:       # range=max-min if else
+            range_value = max_value - min_value
+            zero_point = min_value
         scale = (range_value/qrange)
         half = 2.**(num_bits-ctx.level-1)   # half is near n bits number
         hscale = 2.**(ctx.level)
@@ -564,26 +581,26 @@ class Quantize_G(Function):
             raise ValueError('wrong linear config')
 
         #print("debug g after q",output)
-        return output, None, None, None, None, None, None, None
+        return output, None, None, None, None, None, None, None, None
 
 
 
-def wQuantize(g, bw=8, linear=None, signed=True, stochastic=True, dequantize=True, inplace=False, magnitude=None):
+def wQuantize(g, bw=8, linear=None, signed=True, stochastic=True, dequantize=True, inplace=False, magnitude=None, hard='real'):
     ''' This is the function which does g quantize by calling Quantize_G
     '''
-    return Quantize_W.apply(g, bw, signed, stochastic, dequantize, inplace, magnitude)
+    return Quantize_W.apply(g, bw, signed, stochastic, dequantize, inplace, magnitude, hard)
 
 
-def aQuantize(g, bw=8, signed=True, stochastic=True, dequantize=True, inplace=False, magnitude=None):
+def aQuantize(g, bw=8, signed=True, stochastic=True, dequantize=True, inplace=False, magnitude=None, hard='real'):
     ''' This is the function which does g quantize by calling Quantize_G
     '''
-    return Quantize_A.apply(g, bw, False, stochastic, dequantize, inplace, magnitude)
+    return Quantize_A.apply(g, bw, False, stochastic, dequantize, inplace, magnitude, hard)
 
 
-def gQuantize(g, bw=8, signed=True, stochastic=True, dequantize=True, inplace=False, magnitude=None):
+def gQuantize(g, bw=8, signed=True, stochastic=True, dequantize=True, inplace=False, magnitude=None, hard='real'):
     ''' This is the function which does g quantize by calling Quantize_G
     '''
-    return Quantize_G.apply(g, bw, signed, stochastic, dequantize, inplace, magnitude)
+    return Quantize_G.apply(g, bw, signed, stochastic, dequantize, inplace, magnitude, hard)
 
 
 
@@ -610,6 +627,7 @@ class QConv2d(nn.Conv2d):
         self.level_a     = q_cfg["level"][0]
         self.level_w     = q_cfg["level"][1]
         self.level_g     = q_cfg["level"][2]
+        self.hard        = q_cfg["hard"]
 
         self.quantize_a = Quantize_A
         self.quantize_w = Quantize_W
@@ -621,13 +639,13 @@ class QConv2d(nn.Conv2d):
         if self.training:
             #print("debug self.train:",self.training)
             Qinput  = self.quantize_a.apply(input, self.bw_a, self.linear_a, False,
-                      self.stochastic, self.erange[0], self.group[0], self.level_a)
+                      self.stochastic, self.erange[0], self.group[0], self.level_a, self.hard)
         else:
             #print("debug conv test sto false")
             Qinput  = self.quantize_a.apply(input, self.bw_a, self.linear_a, False,
-                      False, self.erange[0], self.group[0], self.level_a)
+                      False, self.erange[0], self.group[0], self.level_a, self.hard)
         Qweight = self.quantize_w.apply(self.weight, self.bw_w, self.linear_w, 
-                  self.signed, self.stochastic, self.erange[1], self.group[1], self.level_w) 
+                  self.signed, self.stochastic, self.erange[1], self.group[1], self.level_w, self.hard) 
         #print("debug qinput requires grad: ", Qinput.requires_grad)
         #print("debug qweight requires grad: ", Qweight.requires_grad)
 
@@ -636,7 +654,7 @@ class QConv2d(nn.Conv2d):
                                self.stride, self.padding, self.dilation, self.groups)
             if self.bw_g is not None:
                 output = self.quantize_g.apply(output, self.bw_g, self.linear_g, 
-                         self.signed, True, self.erange[2], self.group[2],self.level_g)
+                         self.signed, True, self.erange[2], self.group[2],self.level_g, self.hard)
         else:
             output = F.conv2d(input, self.weight, self.bias, 
                               self.stride, self.padding, self.dilation, self.groups)
@@ -666,6 +684,7 @@ class QLinear(nn.Linear):
         self.level_a     = q_cfg["level"][0]
         self.level_w     = q_cfg["level"][1]
         self.level_g     = q_cfg["level"][2]
+        self.hard        = q_cfg["hard"]
 
         self.quantize_a = Quantize_A
         self.quantize_w = Quantize_W
@@ -677,20 +696,20 @@ class QLinear(nn.Linear):
         if self.training:
             #print("debug linear training:",self.training)
             Qinput  = self.quantize_a.apply(input, self.bw_a, self.linear_a, False,
-                      self.stochastic, self.erange[0], self.group[0], self.level_a)
+                      self.stochastic, self.erange[0], self.group[0], self.level_a, self.hard)
         else:
             #print("debug linear test set sto false")
             Qinput  = self.quantize_a.apply(input, self.bw_a, self.linear_a, False,
-                      False, self.erange[0], self.group[0], self.level_a)
+                      False, self.erange[0], self.group[0], self.level_a, self.hard)
         Qweight = self.quantize_w.apply(self.weight, self.bw_w, self.linear_w, 
-                  self.signed, self.stochastic, self.erange[1], self.group[1], self.level_w) 
+                  self.signed, self.stochastic, self.erange[1], self.group[1], self.level_w, self.hard) 
 
         if self.quantize:
             output = F.linear(Qinput, Qweight, self.bias)
             if self.bw_g is not None:
                 output = self.quantize_g.apply(output, self.bw_g, self.linear_g, 
                          self.signed, True, self.erange[2], self.group[2], 
-                         self.level_g)
+                         self.level_g, self.hard)
         else:
             output = F.linear(input, self.weight, self.bias)
 

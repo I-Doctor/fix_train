@@ -8,9 +8,9 @@ NETWORK:
     quantize: true
     q_cfg:
         bw:
-            - 2
-            - 2
-            - 2
+            - 4
+            - 4
+            - 4
         linear: 
             - null
             - null
@@ -29,8 +29,9 @@ NETWORK:
             - 1
             - 1
             - 1
+        hard: bias
 TRAIN: 
-    epoch: 180
+    epoch: 3
     optimizer: SGDm
     learning_rate: 
         - 0.125

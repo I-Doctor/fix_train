@@ -29,6 +29,7 @@ NETWORK:
             - 1
             - 1
             - 1
+        hard: pow
 TRAIN: 
     epoch: 170
     optimizer: SGDm
