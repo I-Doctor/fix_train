@@ -155,7 +155,6 @@ class Quantize_W(Function):
             # further scale values larger than half to compress precision
             #output = torch.where(mask, output.div(hscale), output)
             output = torch.where(mask, output, output.mul(hscale))
-
             ratio = 4/half
             thres = half
             output.mul_(ratio).sigmoid_().mul_(2*thres).sub_(thres)
@@ -164,11 +163,23 @@ class Quantize_W(Function):
                 output.add_(noise)
             output.clamp_(qmin,qmax).round_()
             output.add_(thres).div_(2*thres).reciprocal_().sub_(1).log_().div(-ratio)
-
             #output = torch.where(mask, output.mul(hscale), output)
             output = torch.where(mask, output, output.div(hscale))
             output.mul_(scale).add_(zero_point - qmin * scale) # dequantize
-
+        elif linear == 'tan':
+            output.add_(qmin * scale - zero_point).div_(scale)
+            mask = output.abs().gt(half-0.5)
+            # further scale values larger than half to compress precision
+            output = torch.where(mask, output, output.mul(hscale))
+            ratio = 4/qmax
+            thres = qmax
+            output.mul_(ratio).sigmoid_().mul_(2*thres).sub_(thres)
+            if stochastic:
+                noise = output.new(output.shape).uniform_(-0.5, 0.5)
+                output.add_(noise)
+            output.clamp_(qmin,qmax).round_()
+            output = torch.where(mask, output, output.div(hscale))
+            output.mul_(scale).add_(zero_point - qmin * scale) # dequantize
         else:
             raise ValueError('wrong linear config')
 
@@ -294,12 +305,6 @@ class Quantize_A(Function):
         qmax = qmin + 2.**(num_bits)
         qrange = qmax - qmin
         max_value = torch.where(max_value.lt(0.0001), max_value+0.0001, max_value)
-<<<<<<< HEAD
-        max_value = torch.pow(2, torch.log2(max_value).ceil_())
-        abs_max = torch.max(max_value, -min_value)
-        range_value = 2*abs_max if signed else abs_max
-        zero_point = -1*abs_max if signed else 0.
-=======
         if hard == 'pow':   # ceil round to pow of 2
             max_value = torch.pow(2, torch.log2(max_value).ceil_())
         elif hard == 'powf':   # floor round to pow of 2
@@ -311,7 +316,6 @@ class Quantize_A(Function):
         else:       # range=max-min if else
             range_value = max_value - min_value
             zero_point = min_value
->>>>>>> 330b2b88a30cc046123ff316d327680bbbdc7c3c
         scale = range_value / qrange
         half = 2.**(num_bits -level -1) if signed else 2.**(num_bits -level)
         hscale = 2.**(level)
@@ -355,7 +359,6 @@ class Quantize_A(Function):
             # further scale values larger than half to compress precision
             #output = torch.where(mask, output.div(hscale), output)
             output = torch.where(mask, output, output.mul(hscale))
-
             ratio = 4/half
             thres = half
             output.mul_(ratio).sigmoid_().mul_(2*thres).sub_(thres)
@@ -364,8 +367,22 @@ class Quantize_A(Function):
                 output.add_(noise)
             output.clamp_(qmin,qmax).round_()
             output.add_(thres).div_(2*thres).reciprocal_().sub_(1).log_().div(-ratio)
-
             #output = torch.where(mask, output.mul(hscale), output)
+            output = torch.where(mask, output, output.div(hscale))
+            output.mul_(scale).add_(zero_point - qmin * scale) # dequantize
+        elif linear == 'tan':
+            output.add_(qmin * scale - zero_point).div_(scale)
+            mask = output.abs().gt(half-0.5)
+            # further scale values larger than half to compress precision
+            output = torch.where(mask, output, output.mul(hscale))
+            ratio = 4/qmax
+            thres = qmax
+            # unsigned :
+            output.mul_(ratio).sigmoid_().mul_(thres)
+            if stochastic:
+                noise = output.new(output.shape).uniform_(-0.5, 0.5)
+                output.add_(noise)
+            output.clamp_(qmin,qmax).round_()
             output = torch.where(mask, output, output.div(hscale))
             output.mul_(scale).add_(zero_point - qmin * scale) # dequantize
         else:
@@ -512,12 +529,6 @@ class Quantize_G(Function):
         qmax = qmin + 2.**(num_bits)
         qrange = qmax - qmin
         max_value = torch.where(max_value.lt(0.00000001), max_value+0.00000001, max_value)
-<<<<<<< HEAD
-        max_value = torch.pow(2, torch.log2(max_value).ceil_())
-        abs_max = torch.max(max_value, -min_value)
-        range_value = 2*abs_max
-        zero_point = -1*abs_max
-=======
         if ctx.hard == 'pow':   # ceil round to pow of 2
             max_value = torch.pow(2, torch.log2(max_value).ceil_())
         elif ctx.hard == 'powf':   # floor round to pow of 2
@@ -529,7 +540,6 @@ class Quantize_G(Function):
         else:       # range=max-min if else
             range_value = max_value - min_value
             zero_point = min_value
->>>>>>> 330b2b88a30cc046123ff316d327680bbbdc7c3c
         scale = (range_value/qrange)
         half = 2.**(num_bits-ctx.level-1)   # half is near n bits number
         hscale = 2.**(ctx.level)
@@ -557,7 +567,6 @@ class Quantize_G(Function):
             # further scale values larger than half to compress precision
             #output = torch.where(mask, output.div(hscale), output)
             output = torch.where(mask, output, output.mul(hscale))
-
             ratio = 4/half
             thres = half
             output.mul_(ratio).sigmoid_().mul_(2*thres).sub_(thres)
@@ -566,7 +575,6 @@ class Quantize_G(Function):
                 output.add_(noise)
             output.clamp_(qmin,qmax).round_()
             output.add_(thres).div_(2*thres).reciprocal_().sub_(1).log_().div(-ratio)
-
             #output = torch.where(mask, output.mul(hscale), output)
             output = torch.where(mask, output, output.div(hscale))
             output.mul_(scale).add_(zero_point - qmin * scale) # dequantize
@@ -577,8 +585,6 @@ class Quantize_G(Function):
             #print ('weight',ratio)
             # further scale values larger than half to compress precision
             output = torch.where(mask, output, output.mul(hscale))
-            #output = torch.where(mask, output.div(hscale), output)
-
             ratio = 4/half
             thres = half
             output.mul_(ratio).sigmoid_().mul_(2*thres).sub_(thres)
@@ -587,8 +593,20 @@ class Quantize_G(Function):
                 output.add_(noise)
             output.clamp_(qmin,qmax).round_()
             output.add_(thres).div_(2*thres).reciprocal_().sub_(1).log_().div(-ratio)
-
-            #output = torch.where(mask, output.mul(hscale), output)
+            output = torch.where(mask, output, output.div(hscale))
+            output.mul_(scale).add_(zero_point - qmin * scale) # dequantize
+        elif ctx.linear == 'tan':
+            output.add_(qmin * scale - zero_point).div_(scale)
+            mask = output.abs().gt(half-0.5)
+            # further scale values larger than half to compress precision
+            output = torch.where(mask, output, output.mul(hscale))
+            ratio = 4/qmax
+            thres = qmax
+            output.mul_(ratio).sigmoid_().mul_(2*thres).sub_(thres)
+            if ctx.stochastic:
+                noise = output.new(output.shape).uniform_(-0.5, 0.5)
+                output.add_(noise)
+            output.clamp_(qmin,qmax).round_()
             output = torch.where(mask, output, output.div(hscale))
             output.mul_(scale).add_(zero_point - qmin * scale) # dequantize
         else:

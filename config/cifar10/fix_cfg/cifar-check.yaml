@@ -8,12 +8,12 @@ NETWORK:
     quantize: true
     q_cfg:
         bw:
-            - 4
-            - 4
-            - 4
+            - 8
+            - 8
+            - 8
         linear: 
             - null
-            - null
+            - tan
             - null
         signed: true
         stochastic: true
@@ -27,15 +27,15 @@ NETWORK:
             - n
         level:
             - 1
+            - 0
             - 1
-            - 1
-        hard: bias
+        hard: unbias
 TRAIN: 
     epoch: 3
     optimizer: SGDm
     learning_rate: 
         - 0.125
-        - 0.0156
+        - 0.015
         - 0.0015
         - 0.0008
     decay_step:

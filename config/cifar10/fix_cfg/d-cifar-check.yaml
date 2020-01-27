@@ -8,12 +8,12 @@ NETWORK:
     quantize: true
     q_cfg:
         bw:
-            - 2
-            - 2
-            - 2
+            - 4
+            - 4
+            - 4
         linear: 
             - null
-            - null
+            - tan
             - null
         signed: true
         stochastic: true
@@ -23,12 +23,13 @@ NETWORK:
             - max
         group: 
             - n
-            - n
+            - c
             - n
         level:
             - 1
             - 1
             - 1
+        hard: pow
 TRAIN: 
     epoch: 180
     optimizer: SGDm
