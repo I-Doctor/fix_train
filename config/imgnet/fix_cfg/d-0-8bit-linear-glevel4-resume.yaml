@@ -5,12 +5,12 @@ NETWORK:
     depth: 18
     num_classes: 1000
     batchnorm: true
-    quantize: true
+    quantize: false
     q_cfg:
         bw:
-            - 4
-            - 4
             - 8
+            - 8
+            - 4
         linear: 
             - null
             - null
@@ -32,8 +32,12 @@ NETWORK:
 TRAIN: 
     epoch: 90 
     optimizer: SGDm
-    resume: ../checkpoint/fix_experiment/imgnet/log_quantize_20200104/checkpoint_60.pkl
-    evaluate: false
+    #resume: ../checkpoint/fix_experiment/imgnet/log_quantize_20200104/checkpoint_60.pkl
+    # from 60 484
+    resume: ../checkpoint/fix_experiment/imgnet/log_quantize_20200122_09-16-51/checkpoint_best_4.pkl
+    # from 60 448
+    #resume: ../checkpoint/fix_experiment/imgnet/log_quantize_20200121_07-54-43/checkpoint_best_4.pkl
+    evaluate: true
     learning_rate: 
         - 0.0012
         - 0.0012
