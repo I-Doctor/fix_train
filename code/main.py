@@ -297,7 +297,7 @@ def main_worker(gpu, ngpus_per_node, cfg):
                 best_acc1 = best_acc1.to(cfg.gpu)
             model.load_state_dict(checkpoint['state_dict'])
             #print('debug:',checkpoint['state_dict'])
-            optimizer.load_state_dict(checkpoint['optimizer'])
+            #optimizer.load_state_dict(checkpoint['optimizer'])
             print("=> loaded checkpoint '{}' (epoch {})"
                    .format(train_cfg.resume, checkpoint['epoch']))
         else:
