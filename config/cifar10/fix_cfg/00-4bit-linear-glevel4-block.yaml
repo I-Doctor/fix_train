@@ -8,9 +8,9 @@ NETWORK:
     quantize: true
     q_cfg:
         bw:
-            - 2
-            - 2
-            - 2
+            - 5
+            - 6
+            - 6
         linear: 
             - null
             - null
@@ -22,8 +22,8 @@ NETWORK:
             - max
             - max
         group: 
+            - nc
             - n
-            - c
             - n
         level:
             - 1

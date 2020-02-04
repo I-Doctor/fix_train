@@ -59,6 +59,8 @@ class Quantize_W(Function):
                     a = a.view(B, C, H*W)
                 elif group == 'c':
                     a = a.transpose(0,1).contiguous().view(C, B, H*W)
+                elif group == 'ct':
+                    a = a.transpose(0,1).contiguous().view(C//2, B*2, H*W)
                 elif group == 'nt':
                     a = a.view(B//2, C*2, H*W)
                 else:
@@ -86,6 +88,9 @@ class Quantize_W(Function):
                 elif group == 'nt':
                     max_value = max_value.repeat(1,2).view(B,1,1,1)
                     min_value = min_value.repeat(1,2).view(B,1,1,1)
+                elif group == 'ct':
+                    max_value = max_value.repeat(1,2).view(1,C,1,1)
+                    min_value = min_value.repeat(1,2).view(1,C,1,1)
                 else:
                     max_value.unsqueeze_(1).unsqueeze_(1).unsqueeze_(1)
                     min_value.unsqueeze_(1).unsqueeze_(1).unsqueeze_(1)
@@ -120,24 +125,22 @@ class Quantize_W(Function):
             max_value = torch.pow(2, torch.log2(max_value).floor_())
         if hard == 'pow' or hard == 'unbias':   # range=2*max if pow or unbias
             abs_max = torch.max(max_value, -min_value)
-            range_value = 2*abs_max
-            zero_point = -1*abs_max
+            range_value = 2*abs_max if signed else abs_max
+            zero_point = -1*abs_max if signed else 0.
         else:       # range=max-min if else
             range_value = max_value - min_value
             zero_point = min_value
         scale = range_value / qrange
-        half = 2.**(num_bits -level -1)
         hscale = 2.**(level)
+        half = qmax/(2.**(level))
         #print('debug w before q', output)
                          
         if linear is None:
             output.add_(qmin * scale - zero_point).div_(scale)
             #print("debug w min max:", output.min(), output.max())
-            mask = output.abs().gt(half-0.5)
+            mask = output.abs().gt(half)
             #ratio = mask.type(torch.float16).mean()
             #print ('weight',ratio)
-            # further scale values larger than half to compress precision
-            #output = torch.where(mask, output.div(hscale), output)
             output = torch.where(mask, output, output.mul(hscale))
             if stochastic:
                 #print("debug stochastic")
@@ -149,7 +152,7 @@ class Quantize_W(Function):
             output.mul_(scale).add_(zero_point - qmin * scale) # dequantize
         elif linear == 'tanh':
             output.add_(qmin * scale - zero_point).div_(scale)
-            mask = output.abs().gt(half-0.5)
+            mask = output.abs().gt(half)
             #ratio = mask.type(torch.float16).mean()
             #print ('weight',ratio)
             # further scale values larger than half to compress precision
@@ -168,7 +171,7 @@ class Quantize_W(Function):
             output.mul_(scale).add_(zero_point - qmin * scale) # dequantize
         elif linear == 'tan':
             output.add_(qmin * scale - zero_point).div_(scale)
-            mask = output.abs().gt(half-0.5)
+            mask = output.abs().gt(half)
             # further scale values larger than half to compress precision
             output = torch.where(mask, output, output.mul(hscale))
             ratio = 4/qmax
@@ -250,6 +253,8 @@ class Quantize_A(Function):
                     a = a.view(B, num_chunks, (C*H*W)//num_chunks)
                 elif group == 'c':
                     a = a.transpose(0,1).contiguous().view(C,num_chunks,(B*H*W)//num_chunks)
+                elif group == 'ct':
+                    a = a.transpose(0,1).contiguous().view(C//2,num_chunks,(B*H*W*2)//num_chunks)
                 elif group == 'nt':
                     a = a.view(B//2, num_chunks, (C*2*H*W)//num_chunks)
                 else:
@@ -275,6 +280,9 @@ class Quantize_A(Function):
                 elif group == 'nt':
                     max_value = max_value.repeat(1,2).view(B,1,1,1)
                     min_value = min_value.repeat(1,2).view(B,1,1,1)
+                elif group == 'ct':
+                    max_value = max_value.repeat(1,2).view(1,C,1,1)
+                    min_value = min_value.repeat(1,2).view(1,C,1,1)
                 else:
                     max_value.unsqueeze_(1).unsqueeze_(1).unsqueeze_(1)
                     min_value.unsqueeze_(1).unsqueeze_(1).unsqueeze_(1)
@@ -311,14 +319,14 @@ class Quantize_A(Function):
             max_value = torch.pow(2, torch.log2(max_value).floor_())
         if hard == 'pow' or hard == 'unbias':   # range=2*max if pow or unbias
             abs_max = torch.max(max_value, -min_value)
-            range_value = 2*abs_max
-            zero_point = -1*abs_max
-        else:       # range=max-min if else
+            range_value = 2*abs_max if signed else abs_max
+            zero_point = -1*abs_max if signed else 0.
+        else:       # range=max-min if 'real'
             range_value = max_value - min_value
             zero_point = min_value
         scale = range_value / qrange
-        half = 2.**(num_bits -level -1) if signed else 2.**(num_bits -level)
         hscale = 2.**(level)
+        half = qmax/hscale 
         #print("debug a before q", output)
         if torch.isnan(output).sum():
             exit('output nan')
@@ -332,15 +340,12 @@ class Quantize_A(Function):
                     
         if linear is None:
             (output.add_(qmin * scale - zero_point)).div_(scale)
-            #print("debug div scale  min max:", output.min(), output.max())
-            mask = output.abs().gt(half-0.5)
+            mask = output.abs().gt(half)
             #ratio = mask.type(torch.float16).mean()
             #print ('activ',ratio)
-            # further scale values larger than half to compress precision
-            #output = torch.where(mask, output.div(hscale), output)
-            # further scale values less than half to enlarge precision
+            # further scale values less than half to boost precision
             output = torch.where(mask, output, output.mul(hscale))
-            #print("debug mul hscale  min max:", output.min(), output.max())
+            #print("debug mul hscale min max:", output.min(), output.max())
             if stochastic:
                 noise = output.new(output.shape).uniform_(-0.5, 0.5)
                 output.add_(noise)
@@ -353,7 +358,7 @@ class Quantize_A(Function):
             #print("debug mul scale min max:", output.min(), output.max())
         elif linear == 'tanh':
             output.add_(qmin * scale - zero_point).div_(scale)
-            mask = output.abs().gt(half-0.5)
+            mask = output.abs().gt(half)
             #ratio = mask.type(torch.float16).mean()
             #print ('weight',ratio)
             # further scale values larger than half to compress precision
@@ -372,7 +377,7 @@ class Quantize_A(Function):
             output.mul_(scale).add_(zero_point - qmin * scale) # dequantize
         elif linear == 'tan':
             output.add_(qmin * scale - zero_point).div_(scale)
-            mask = output.abs().gt(half-0.5)
+            mask = output.abs().gt(half)
             # further scale values larger than half to compress precision
             output = torch.where(mask, output, output.mul(hscale))
             ratio = 4/qmax
@@ -470,6 +475,8 @@ class Quantize_G(Function):
                     a = a.view(B, num_chunks, (C*H*W)//num_chunks)
                 elif ctx.group == 'c':
                     a = a.transpose(0,1).contiguous().view(C,num_chunks,(B*H*W)//num_chunks)
+                elif ctx.group == 'ct':
+                    a = a.transpose(0,1).contiguous().view(C//2,num_chunks,(B*H*W*2)//num_chunks)
                 elif ctx.group == 'nt':
                     a = a.view(B//2, num_chunks, (C*2*H*W)//num_chunks)
                 else:
@@ -495,6 +502,9 @@ class Quantize_G(Function):
                 elif ctx.group == 'nt':
                     max_value = max_value.repeat(1,2).view(B,1,1,1)
                     min_value = min_value.repeat(1,2).view(B,1,1,1)
+                elif ctx.group == 'ct':
+                    max_value = max_value.repeat(1,2).view(1,C,1,1)
+                    min_value = min_value.repeat(1,2).view(1,C,1,1)
                 else:
                     max_value.unsqueeze_(1).unsqueeze_(1).unsqueeze_(1)
                     min_value.unsqueeze_(1).unsqueeze_(1).unsqueeze_(1)
@@ -524,44 +534,42 @@ class Quantize_G(Function):
         #print("debug g before q",output)
         if torch.isnan(output).sum():
             exit('nan g')
-        num_bits = ctx.num_bits + ctx.level # first scale for n+l bits
+        #num_bits = ctx.num_bits + ctx.level # first scale for n+l bits
+        num_bits = ctx.num_bits
         qmin = -(2.**(num_bits - 1)) if ctx.signed else 0.
         qmax = qmin + 2.**(num_bits)
         qrange = qmax - qmin
-        max_value = torch.where(max_value.lt(0.00000001), max_value+0.00000001, max_value)
+        max_value = torch.where(max_value.lt(0.0000001), 0.0000001, max_value)
         if ctx.hard == 'pow':   # ceil round to pow of 2
             max_value = torch.pow(2, torch.log2(max_value).ceil_())
         elif ctx.hard == 'powf':   # floor round to pow of 2
             max_value = torch.pow(2, torch.log2(max_value).floor_())
         if ctx.hard == 'pow' or ctx.hard == 'unbias':   # range=2*max if pow or unbias
             abs_max = torch.max(max_value, -min_value)
-            range_value = 2*abs_max
-            zero_point = -1*abs_max
+            range_value = 2*abs_max if ctx.signed else abs_max
+            zero_point = -1*abs_max if ctx.signed else 0.
         else:       # range=max-min if else
             range_value = max_value - min_value
             zero_point = min_value
         scale = (range_value/qrange)
-        half = 2.**(num_bits-ctx.level-1)   # half is near n bits number
         hscale = 2.**(ctx.level)
+        half = qmax/hscale   # half is near n bits number
 
         if ctx.linear is None:
             output.add_(qmin * scale - zero_point).div_(scale)
-            mask = output.abs().gt(half-0.5)
+            mask = output.abs().gt(half)
             #ratio = mask.type(torch.float16).mean()
             #print ('grad',ratio)
-            # further scale values larger than half to compress precision
-            #output = torch.where(mask, output.div(hscale), output)
             output = torch.where(mask, output, output.mul(hscale))
             if ctx.stochastic:
                 noise = output.new(output.shape).uniform_(-0.5, 0.5)
                 output.add_(noise)
             output.clamp_(qmin, qmax).round_()  # quantize
-            #output = torch.where(mask, output.mul(hscale), output)
             output = torch.where(mask, output, output.div(hscale))
             output.mul_(scale).add_(zero_point - qmin * scale) # dequantize
         elif ctx.linear == 'tanh':
             output.add_(qmin * scale - zero_point).div_(scale)
-            mask = output.abs().gt(half-0.5)
+            mask = output.abs().gt(half)
             #ratio = mask.type(torch.float16).mean()
             #print ('weight',ratio)
             # further scale values larger than half to compress precision
@@ -580,7 +588,7 @@ class Quantize_G(Function):
             output.mul_(scale).add_(zero_point - qmin * scale) # dequantize
         elif ctx.linear == 'lap':
             output.add_(qmin * scale - zero_point).div_(scale)
-            mask = output.abs().gt(half-0.5)
+            mask = output.abs().gt(half)
             #ratio = mask.type(torch.float16).mean()
             #print ('weight',ratio)
             # further scale values larger than half to compress precision
@@ -597,7 +605,7 @@ class Quantize_G(Function):
             output.mul_(scale).add_(zero_point - qmin * scale) # dequantize
         elif ctx.linear == 'tan':
             output.add_(qmin * scale - zero_point).div_(scale)
-            mask = output.abs().gt(half-0.5)
+            mask = output.abs().gt(half)
             # further scale values larger than half to compress precision
             output = torch.where(mask, output, output.mul(hscale))
             ratio = 4/qmax

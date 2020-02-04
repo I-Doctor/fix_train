@@ -5,12 +5,12 @@ NETWORK:
     depth: 18
     num_classes: 1000
     batchnorm: true
-    quantize: false
+    quantize: true
     q_cfg:
         bw:
-            - 9
-            - 9
-            - 9
+            - 10
+            - 11
+            - 11
         linear: 
             - null
             - null
