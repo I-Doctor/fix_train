@@ -31,17 +31,29 @@ NETWORK:
             - 1
         hard: pow
 TRAIN: 
-    epoch: 70 
+    epoch: 52 
     optimizer: SGDm
-    #resume: ../checkpoint/fix_experiment/imgnet/log_quantize_20200129_16-58-30/checkpoint_best_3.pkl
-    resume: ../checkpoint/fix_experiment/imgnet/log_quantize_20200201_12-53-15/checkpoint_best_3.pkl
+    # old model
+    #resume: ../checkpoint/fix_experiment/imgnet/log_quantize_20200104/checkpoint_60.pkl
+    # from 60 484
+    #resume: ../checkpoint/fix_experiment/imgnet/log_quantize_20200122_09-16-51/checkpoint_best_4.pkl
+    # from 60 448
+    #resume: ../checkpoint/fix_experiment/imgnet/log_quantize_20200121_07-54-43/checkpoint_best_4.pkl
+    # new model
+    #resume: ../checkpoint/fix_experiment/imgnet/log_quantize_20200127_23-48-40/checkpoint_60.pkl
+    # resume2 new model
+    #resume: ../checkpoint/fix_experiment/imgnet/log_quantize_20200130_15-35-14/checkpoint_best_3.pkl
+    # resume3 new model
+    resume: ../checkpoint/fix_experiment/imgnet/log_quantize_20200131_01-23-37/checkpoint_best_3.pkl
+    # resume 455 model
+    resume: ../checkpoint/fix_experiment/imgnet/log_quantize_20200131_23-39-06/checkpoint_best_2.pkl
     evaluate: false
     learning_rate: 
-        - 0.005
-        - 0.0008
+        - 0.001
+        - 0.0004
     decay_step:
         - 0
-        - 68
+        - 49
     warmup: false
     weight_decay: 0.0001
     momentum: 0.7
