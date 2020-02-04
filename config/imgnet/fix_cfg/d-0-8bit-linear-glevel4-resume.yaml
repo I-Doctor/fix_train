@@ -31,14 +31,14 @@ NETWORK:
             - 1
         hard: pow
 TRAIN: 
-    epoch: 70 
+    epoch: 73 
     optimizer: SGDm
     #resume: ../checkpoint/fix_experiment/imgnet/log_quantize_20200129_16-58-30/checkpoint_best_3.pkl
     resume: ../checkpoint/fix_experiment/imgnet/log_quantize_20200201_12-53-15/checkpoint_best_3.pkl
     evaluate: false
     learning_rate: 
         - 0.005
-        - 0.0008
+        - 0.001
     decay_step:
         - 0
         - 68
