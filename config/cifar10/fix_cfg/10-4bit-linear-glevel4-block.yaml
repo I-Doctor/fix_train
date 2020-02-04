@@ -22,7 +22,7 @@ NETWORK:
             - max
             - max
         group: 
-            - n
+            - nc
             - n
             - n
         level:

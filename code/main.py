@@ -297,14 +297,14 @@ def main_worker(gpu, ngpus_per_node, cfg):
                 best_acc1 = best_acc1.to(cfg.gpu)
             model.load_state_dict(checkpoint['state_dict'])
             #print('debug:',checkpoint['state_dict'])
-            optimizer.load_state_dict(checkpoint['optimizer'])
+            #optimizer.load_state_dict(checkpoint['optimizer'])
             print("=> loaded checkpoint '{}' (epoch {})"
                    .format(train_cfg.resume, checkpoint['epoch']))
         else:
             print("=> no checkpoint found at '{}'".format(train_cfg.resume))
-        if parallel:
+        if parallel and net_cfg.quantize:
             model.module.enable_quantize()
-        else:
+        elif net_cfg.quantize:
             model.enable_quantize()
     
     cudnn.benchmark = True
@@ -392,7 +392,7 @@ def main_worker(gpu, ngpus_per_node, cfg):
             train_sampler.set_epoch(epoch)
 
         adjust_learning_rate(optimizer, epoch, train_cfg)
-        if epoch == cfg.float_epoch:
+        if epoch == cfg.float_epoch and net_cfg.quantize:
             if parallel:
                 model.module.enable_quantize()
             else:
