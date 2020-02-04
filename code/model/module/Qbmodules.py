@@ -539,7 +539,7 @@ class Quantize_G(Function):
         qmin = -(2.**(num_bits - 1)) if ctx.signed else 0.
         qmax = qmin + 2.**(num_bits)
         qrange = qmax - qmin
-        max_value = torch.where(max_value.lt(0.0000001), 0.0000001, max_value)
+        max_value = torch.where(max_value.lt(0.0000001), max_value+0.0000001, max_value)
         if ctx.hard == 'pow':   # ceil round to pow of 2
             max_value = torch.pow(2, torch.log2(max_value).ceil_())
         elif ctx.hard == 'powf':   # floor round to pow of 2
