@@ -3,7 +3,7 @@ import h5py
 
 #filename = 'checkpoint_w_0.h5'
 #filename = 'checkpoint_a_0.h5'
-filename = 'checkpoint_e_0.h5'
+#filename = 'checkpoint_e_0.h5'
 #filename = 'checkpoint_g_0.h5'
 
 #filename = 'checkpoint_w_2.h5'

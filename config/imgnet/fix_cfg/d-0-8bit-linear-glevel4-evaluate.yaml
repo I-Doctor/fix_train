@@ -9,7 +9,7 @@ NETWORK:
     q_cfg:
         bw:
             - 4
-            - 8
+            - 4
             - 4
         linear: 
             - null
@@ -22,28 +22,29 @@ NETWORK:
             - max
             - max
         group: 
-            - n
-            - c
-            - n
+            - nc
+            - nc
+            - nc
         level:
-            - 0
-            - 0
             - 1
+            - 1
+            - 1
+        hard: unbias
 TRAIN: 
-    epoch: 90 
+    epoch: 80 
     optimizer: SGDm
-    resume: ../checkpoint/fix_experiment/imgnet/log_quantize_20191205_16-42-54/checkpoint_best_3.pkl
+    resume: ../checkpoint/fix_experiment/imgnet/log_quantize_20200130_15-35-14/checkpoint_best_3.pkl
     evaluate: true
     learning_rate: 
-        - 0.12
-        - 0.015
-        - 0.0015
-        - 0.0008
+        - 0.1
+        - 0.01
+        - 0.001
+        - 0.0004
     decay_step:
         - 0
-        - 27
-        - 55
-        - 75
+        - 25
+        - 50
+        - 70
     warmup: false
     weight_decay: 0.0001
     momentum: 0.9

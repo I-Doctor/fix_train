@@ -123,11 +123,17 @@ class Quantize_W(Function):
             max_value = torch.pow(2, torch.log2(max_value).ceil_())
         elif hard == 'powf':   # floor round to pow of 2
             max_value = torch.pow(2, torch.log2(max_value).floor_())
-        if hard == 'pow' or hard == 'unbias':   # range=2*max if pow or unbias
+        elif hard == 'pow2':   # 1 bit round to 1* or 1.5* pow of 2
+            max_value1 = torch.pow(2, torch.log2(max_value).ceil_())
+            max_value2 = torch.pow(2, torch.log2(max_value).floor_())
+            max_value3 = torch.add(max_value,max_value2).div_(2)
+            flag = max_value.gt(max_value3)
+            max_value = torch.where(flag, max_value1, max_value3)
+        if hard != 'real':   # range=2*max if pow or unbias
             abs_max = torch.max(max_value, -min_value)
             range_value = 2*abs_max if signed else abs_max
             zero_point = -1*abs_max if signed else 0.
-        else:       # range=max-min if else
+        else:       # range=max-min if hard = real
             range_value = max_value - min_value
             zero_point = min_value
         scale = range_value / qrange
@@ -317,7 +323,13 @@ class Quantize_A(Function):
             max_value = torch.pow(2, torch.log2(max_value).ceil_())
         elif hard == 'powf':   # floor round to pow of 2
             max_value = torch.pow(2, torch.log2(max_value).floor_())
-        if hard == 'pow' or hard == 'unbias':   # range=2*max if pow or unbias
+        elif hard == 'pow2':   # 1 bit round to 1* or 1.5* pow of 2
+            max_value1 = torch.pow(2, torch.log2(max_value).ceil_())
+            max_value2 = torch.pow(2, torch.log2(max_value).floor_())
+            max_value3 = torch.add(max_value,max_value2).div_(2)
+            flag = max_value.gt(max_value3)
+            max_value = torch.where(flag, max_value1, max_value3)
+        if hard != 'real':   # range=2*max if pow or unbias
             abs_max = torch.max(max_value, -min_value)
             range_value = 2*abs_max if signed else abs_max
             zero_point = -1*abs_max if signed else 0.
@@ -544,7 +556,13 @@ class Quantize_G(Function):
             max_value = torch.pow(2, torch.log2(max_value).ceil_())
         elif ctx.hard == 'powf':   # floor round to pow of 2
             max_value = torch.pow(2, torch.log2(max_value).floor_())
-        if ctx.hard == 'pow' or ctx.hard == 'unbias':   # range=2*max if pow or unbias
+        elif ctx.hard == 'pow2':   # 1 bit round to 1* or 1.5* pow of 2
+            max_value1 = torch.pow(2, torch.log2(max_value).ceil_())
+            max_value2 = torch.pow(2, torch.log2(max_value).floor_())
+            max_value3 = torch.add(max_value,max_value2).div_(2)
+            flag = max_value.gt(max_value3)
+            max_value = torch.where(flag, max_value1, max_value3)
+        if ctx.hard != 'real':   # range=2*max if pow or unbias
             abs_max = torch.max(max_value, -min_value)
             range_value = 2*abs_max if ctx.signed else abs_max
             zero_point = -1*abs_max if ctx.signed else 0.

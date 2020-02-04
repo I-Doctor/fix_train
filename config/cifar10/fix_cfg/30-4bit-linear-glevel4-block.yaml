@@ -22,13 +22,13 @@ NETWORK:
             - max
             - max
         group: 
-            - c
             - n
-            - c
+            - n
+            - n
         level:
-            - 1
-            - 1
-            - 1
+            - 0
+            - 0
+            - 0
         hard: pow
 TRAIN: 
     epoch: 170
