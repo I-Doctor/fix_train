@@ -1,5 +1,5 @@
 data_root: /home/eva_share/datasets/ILSVRC2012/ILSVRC2012_img_train
-float_epoch: 0
+float_epoch: 2
 print_freq: 50
 NETWORK: 
     depth: 18
@@ -8,9 +8,9 @@ NETWORK:
     quantize: true
     q_cfg:
         bw:
-            - 4
-            - 4
-            - 4
+            - 6
+            - 7
+            - 7
         linear: 
             - null
             - null
@@ -22,32 +22,32 @@ NETWORK:
             - max
             - max
         group: 
-            - n
-            - c
-            - n
+            - nc
+            - nc
+            - nc
         level:
             - 1
             - 1
             - 1
-        hard: unbias
+        hard: pow
 TRAIN: 
-    epoch: 90 
+    epoch: 70 
     optimizer: SGDm
     resume: null
     evaluate: false
     learning_rate: 
         - 0.1
-        - 0.012
-        - 0.0012
-        - 0.0006
+        - 0.01
+        - 0.001
+        - 0.0005
     decay_step:
         - 0
-        - 27
-        - 55
-        - 75
+        - 23
+        - 44
+        - 65
     warmup: false
     weight_decay: 0.0001
-    momentum: 0.9
+    momentum: 0.8
 DATA:
     dataset: ILSVRC2012_img
     batch_size: 1024
