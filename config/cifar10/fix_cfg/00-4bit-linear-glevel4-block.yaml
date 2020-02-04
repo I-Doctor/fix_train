@@ -8,9 +8,9 @@ NETWORK:
     quantize: true
     q_cfg:
         bw:
-            - 4
-            - 4
-            - 4
+            - 5
+            - 6
+            - 6
         linear: 
             - null
             - null
@@ -24,12 +24,12 @@ NETWORK:
         group: 
             - nc
             - n
-            - nc
+            - n
         level:
-            - 0
-            - 0
-            - 0
-        hard: bias
+            - 1
+            - 1
+            - 1
+        hard: pow
 TRAIN: 
     epoch: 170
     optimizer: SGDm

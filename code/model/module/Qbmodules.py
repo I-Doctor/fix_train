@@ -59,6 +59,8 @@ class Quantize_W(Function):
                     a = a.view(B, C, H*W)
                 elif group == 'c':
                     a = a.transpose(0,1).contiguous().view(C, B, H*W)
+                elif group == 'ct':
+                    a = a.transpose(0,1).contiguous().view(C//2, B*2, H*W)
                 elif group == 'nt':
                     a = a.view(B//2, C*2, H*W)
                 else:
@@ -86,6 +88,9 @@ class Quantize_W(Function):
                 elif group == 'nt':
                     max_value = max_value.repeat(1,2).view(B,1,1,1)
                     min_value = min_value.repeat(1,2).view(B,1,1,1)
+                elif group == 'ct':
+                    max_value = max_value.repeat(1,2).view(1,C,1,1)
+                    min_value = min_value.repeat(1,2).view(1,C,1,1)
                 else:
                     max_value.unsqueeze_(1).unsqueeze_(1).unsqueeze_(1)
                     min_value.unsqueeze_(1).unsqueeze_(1).unsqueeze_(1)
@@ -250,6 +255,8 @@ class Quantize_A(Function):
                     a = a.view(B, num_chunks, (C*H*W)//num_chunks)
                 elif group == 'c':
                     a = a.transpose(0,1).contiguous().view(C,num_chunks,(B*H*W)//num_chunks)
+                elif group == 'ct':
+                    a = a.transpose(0,1).contiguous().view(C//2,num_chunks,(B*H*W*2)//num_chunks)
                 elif group == 'nt':
                     a = a.view(B//2, num_chunks, (C*2*H*W)//num_chunks)
                 else:
@@ -275,6 +282,9 @@ class Quantize_A(Function):
                 elif group == 'nt':
                     max_value = max_value.repeat(1,2).view(B,1,1,1)
                     min_value = min_value.repeat(1,2).view(B,1,1,1)
+                elif group == 'ct':
+                    max_value = max_value.repeat(1,2).view(1,C,1,1)
+                    min_value = min_value.repeat(1,2).view(1,C,1,1)
                 else:
                     max_value.unsqueeze_(1).unsqueeze_(1).unsqueeze_(1)
                     min_value.unsqueeze_(1).unsqueeze_(1).unsqueeze_(1)
@@ -470,6 +480,8 @@ class Quantize_G(Function):
                     a = a.view(B, num_chunks, (C*H*W)//num_chunks)
                 elif ctx.group == 'c':
                     a = a.transpose(0,1).contiguous().view(C,num_chunks,(B*H*W)//num_chunks)
+                elif ctx.group == 'ct':
+                    a = a.transpose(0,1).contiguous().view(C//2,num_chunks,(B*H*W*2)//num_chunks)
                 elif ctx.group == 'nt':
                     a = a.view(B//2, num_chunks, (C*2*H*W)//num_chunks)
                 else:
@@ -495,6 +507,9 @@ class Quantize_G(Function):
                 elif ctx.group == 'nt':
                     max_value = max_value.repeat(1,2).view(B,1,1,1)
                     min_value = min_value.repeat(1,2).view(B,1,1,1)
+                elif ctx.group == 'ct':
+                    max_value = max_value.repeat(1,2).view(1,C,1,1)
+                    min_value = min_value.repeat(1,2).view(1,C,1,1)
                 else:
                     max_value.unsqueeze_(1).unsqueeze_(1).unsqueeze_(1)
                     min_value.unsqueeze_(1).unsqueeze_(1).unsqueeze_(1)
