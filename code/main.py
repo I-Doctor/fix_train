@@ -302,9 +302,9 @@ def main_worker(gpu, ngpus_per_node, cfg):
                    .format(train_cfg.resume, checkpoint['epoch']))
         else:
             print("=> no checkpoint found at '{}'".format(train_cfg.resume))
-        if parallel:
+        if parallel and net_cfg.quantize:
             model.module.enable_quantize()
-        else:
+        elif net_cfg.quantize:
             model.enable_quantize()
     
     cudnn.benchmark = True
