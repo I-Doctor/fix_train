@@ -5,12 +5,12 @@ NETWORK:
     depth: 18
     num_classes: 1000
     batchnorm: true
-    quantize: false
+    quantize: true
     q_cfg:
         bw:
-            - 8
-            - 8
-            - 4
+            - 10
+            - 11
+            - 11
         linear: 
             - null
             - null
@@ -22,38 +22,32 @@ NETWORK:
             - max
             - max
         group: 
-            - n
-            - c
-            - n
+            - nc
+            - nc
+            - nc
         level:
             - 1
             - 1
             - 1
+        hard: pow
 TRAIN: 
-    epoch: 90 
+    epoch: 70 
     optimizer: SGDm
-    #resume: ../checkpoint/fix_experiment/imgnet/log_quantize_20200104/checkpoint_60.pkl
-    # from 60 484
-    resume: ../checkpoint/fix_experiment/imgnet/log_quantize_20200122_09-16-51/checkpoint_best_4.pkl
-    # from 60 448
-    #resume: ../checkpoint/fix_experiment/imgnet/log_quantize_20200121_07-54-43/checkpoint_best_4.pkl
-    evaluate: true
+    #resume: ../checkpoint/fix_experiment/imgnet/log_quantize_20200129_16-58-30/checkpoint_best_3.pkl
+    resume: ../checkpoint/fix_experiment/imgnet/log_quantize_20200201_12-53-15/checkpoint_best_3.pkl
+    evaluate: false
     learning_rate: 
-        - 0.0012
-        - 0.0012
-        - 0.0012
-        - 0.0006
+        - 0.005
+        - 0.0008
     decay_step:
         - 0
-        - 27
-        - 55
-        - 78
+        - 68
     warmup: false
     weight_decay: 0.0001
-    momentum: 0.9
+    momentum: 0.7
 DATA:
     dataset: ILSVRC2012_img
-    batch_size: 512
+    batch_size: 1024
     num_works: 8
     flip: true
     shuffle: true

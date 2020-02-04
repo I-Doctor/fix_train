@@ -8,9 +8,9 @@ NETWORK:
     quantize: true
     q_cfg:
         bw:
-            - 4
-            - 4
-            - 4
+            - 5
+            - 6
+            - 6
         linear: 
             - null
             - null
@@ -22,32 +22,32 @@ NETWORK:
             - max
             - max
         group: 
-            - n
-            - c
-            - n
+            - nc
+            - nc
+            - nc
         level:
             - 1
             - 1
             - 1
-        hard: unbias
+        hard: pow
 TRAIN: 
-    epoch: 90 
+    epoch: 75 
     optimizer: SGDm
     resume: null
     evaluate: false
     learning_rate: 
         - 0.1
-        - 0.012
-        - 0.0012
-        - 0.0006
+        - 0.01
+        - 0.001
+        - 0.0005
     decay_step:
         - 0
-        - 27
-        - 55
-        - 75
+        - 23
+        - 45
+        - 65
     warmup: false
     weight_decay: 0.0001
-    momentum: 0.9
+    momentum: 0.7
 DATA:
     dataset: ILSVRC2012_img
     batch_size: 1024
