@@ -22,14 +22,14 @@ NETWORK:
             - max
             - max
         group: 
-            - nt
-            - nt
-            - nt
+            - false
+            - false
+            - false
         level:
-            - 0
-            - 0
-            - 0
-        hard: bias
+            - 1
+            - 1
+            - 1
+        hard: pow
 TRAIN: 
     epoch: 170
     optimizer: SGDm
