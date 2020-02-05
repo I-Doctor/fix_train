@@ -8,9 +8,9 @@ NETWORK:
     quantize: true
     q_cfg:
         bw:
-            - 5
             - 6
-            - 6
+            - 7
+            - 7
         linear: 
             - null
             - null
@@ -23,13 +23,13 @@ NETWORK:
             - max
         group: 
             - nc
-            - nc
+            - n
             - nc
         level:
             - 1
             - 1
             - 1
-        hard: pow2
+        hard: pows
 TRAIN: 
     epoch: 73 
     optimizer: SGDm

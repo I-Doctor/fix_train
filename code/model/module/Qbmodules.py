@@ -126,7 +126,7 @@ class Quantize_W(Function):
         elif hard == 'pow2':   # 1 bit round to 1* or 1.5* pow of 2
             max_value1 = torch.pow(2, torch.log2(max_value).ceil_())
             max_value2 = torch.pow(2, torch.log2(max_value).floor_())
-            max_value3 = torch.add(max_value,max_value2).div_(2)
+            max_value3 = torch.add(max_value1,max_value2).div_(2)
             flag = max_value.gt(max_value3)
             max_value = torch.where(flag, max_value1, max_value3)
         if hard != 'real':   # range=2*max if pow or unbias
@@ -326,7 +326,7 @@ class Quantize_A(Function):
         elif hard == 'pow2':   # 1 bit round to 1* or 1.5* pow of 2
             max_value1 = torch.pow(2, torch.log2(max_value).ceil_())
             max_value2 = torch.pow(2, torch.log2(max_value).floor_())
-            max_value3 = torch.add(max_value,max_value2).div_(2)
+            max_value3 = torch.add(max_value1,max_value2).div_(2)
             flag = max_value.gt(max_value3)
             max_value = torch.where(flag, max_value1, max_value3)
         if hard != 'real':   # range=2*max if pow or unbias
@@ -559,7 +559,7 @@ class Quantize_G(Function):
         elif ctx.hard == 'pow2':   # 1 bit round to 1* or 1.5* pow of 2
             max_value1 = torch.pow(2, torch.log2(max_value).ceil_())
             max_value2 = torch.pow(2, torch.log2(max_value).floor_())
-            max_value3 = torch.add(max_value,max_value2).div_(2)
+            max_value3 = torch.add(max_value1,max_value2).div_(2)
             flag = max_value.gt(max_value3)
             max_value = torch.where(flag, max_value1, max_value3)
         if ctx.hard != 'real':   # range=2*max if pow or unbias
