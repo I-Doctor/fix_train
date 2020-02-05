@@ -129,6 +129,11 @@ class Quantize_W(Function):
             max_value3 = torch.add(max_value1,max_value2).div_(2)
             flag = max_value.gt(max_value3)
             max_value = torch.where(flag, max_value1, max_value3)
+        elif hard == 'pows':   # same mantissa and pow of 2
+            mantissa = max_value.max()
+            max_value.div_(mantissa)
+            max_value = torch.pow(2, torch.log2(max_value).ceil_())
+            max_value.mul_(mantissa)
         if hard != 'real':   # range=2*max if pow or unbias
             abs_max = torch.max(max_value, -min_value)
             range_value = 2*abs_max if signed else abs_max
@@ -329,6 +334,11 @@ class Quantize_A(Function):
             max_value3 = torch.add(max_value1,max_value2).div_(2)
             flag = max_value.gt(max_value3)
             max_value = torch.where(flag, max_value1, max_value3)
+        elif hard == 'pows':   # same mantissa and pow of 2
+            mantissa = max_value.max()
+            max_value.div_(mantissa)
+            max_value = torch.pow(2, torch.log2(max_value).ceil_())
+            max_value.mul_(mantissa)
         if hard != 'real':   # range=2*max if pow or unbias
             abs_max = torch.max(max_value, -min_value)
             range_value = 2*abs_max if signed else abs_max
@@ -562,6 +572,11 @@ class Quantize_G(Function):
             max_value3 = torch.add(max_value1,max_value2).div_(2)
             flag = max_value.gt(max_value3)
             max_value = torch.where(flag, max_value1, max_value3)
+        elif ctx.hard == 'pows':   # same mantissa and pow of 2
+            mantissa = max_value.max()
+            max_value.div_(mantissa)
+            max_value = torch.pow(2, torch.log2(max_value).ceil_())
+            max_value.mul_(mantissa)
         if ctx.hard != 'real':   # range=2*max if pow or unbias
             abs_max = torch.max(max_value, -min_value)
             range_value = 2*abs_max if ctx.signed else abs_max

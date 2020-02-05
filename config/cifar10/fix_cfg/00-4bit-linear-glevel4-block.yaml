@@ -8,9 +8,9 @@ NETWORK:
     quantize: true
     q_cfg:
         bw:
-            - 5
-            - 6
-            - 6
+            - 4
+            - 4
+            - 4
         linear: 
             - null
             - null
@@ -22,27 +22,27 @@ NETWORK:
             - max
             - max
         group: 
-            - n
-            - n
-            - n
+            - false
+            - false
+            - false
         level:
-            - 0
-            - 0
-            - 0
-        hard: pow2
+            - 1
+            - 1
+            - 1
+        hard: pow
 TRAIN: 
-    epoch: 170
+    epoch: 165
     optimizer: SGDm
     learning_rate: 
-        - 0.12
+        - 0.1
         - 0.01
         - 0.0009
         - 0.0005
     decay_step:
         - 0
-        - 85
-        - 125
-        - 165
+        - 80
+        - 120
+        - 160
     warmup: false
     weight_decay: 0.0001
     momentum: 0.9
