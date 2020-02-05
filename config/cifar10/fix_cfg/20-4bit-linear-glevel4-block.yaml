@@ -9,8 +9,8 @@ NETWORK:
     q_cfg:
         bw:
             - 4
-            - 5
-            - 5
+            - 4
+            - 4
         linear: 
             - null
             - null
@@ -22,16 +22,16 @@ NETWORK:
             - max
             - max
         group: 
-            - n
-            - n
-            - n
+            - false
+            - false
+            - false
         level:
+            - 1
             - 0
-            - 0
-            - 0
+            - 1
         hard: pow
 TRAIN: 
-    epoch: 170
+    epoch: 165
     optimizer: SGDm
     learning_rate: 
         - 0.1
@@ -40,9 +40,9 @@ TRAIN:
         - 0.0005
     decay_step:
         - 0
-        - 85
-        - 125
-        - 165
+        - 80
+        - 120
+        - 160
     warmup: false
     weight_decay: 0.0001
     momentum: 0.9
