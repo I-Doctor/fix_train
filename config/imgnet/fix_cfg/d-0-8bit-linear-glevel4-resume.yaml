@@ -8,9 +8,9 @@ NETWORK:
     quantize: true
     q_cfg:
         bw:
-            - 6
-            - 7
-            - 7
+            - 12
+            - 13
+            - 13
         linear: 
             - null
             - null
@@ -23,7 +23,7 @@ NETWORK:
             - max
         group: 
             - nc
-            - nc
+            - n
             - nc
         level:
             - 1
@@ -31,7 +31,7 @@ NETWORK:
             - 1
         hard: pow
 TRAIN: 
-    epoch: 67 
+    epoch: 80 
     optimizer: SGDm
     # old model
     #resume: ../checkpoint/fix_experiment/imgnet/log_quantize_20200104/checkpoint_60.pkl
@@ -46,17 +46,19 @@ TRAIN:
     # resume3 new model
     #resume: ../checkpoint/fix_experiment/imgnet/log_quantize_20200131_01-23-37/checkpoint_best_3.pkl
     # resume 455 model
-    resume: ../checkpoint/fix_experiment/imgnet/log_quantize_20200203_00-56-59/checkpoint_best_3.pkl
+    #resume: ../checkpoint/fix_experiment/imgnet/log_quantize_20200203_00-56-59/checkpoint_best_3.pkl
+    # resume 677 model
+    resume: ../checkpoint/fix_experiment/imgnet/log_quantize_20200204_17-28-00/checkpoint_best_3.pkl
     evaluate: false
     learning_rate: 
         - 0.001
         - 0.0005
     decay_step:
         - 0
-        - 65
+        - 75
     warmup: false
     weight_decay: 0.0001
-    momentum: 0.7
+    momentum: 0.8
 DATA:
     dataset: ILSVRC2012_img
     batch_size: 1024
