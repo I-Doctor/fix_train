@@ -31,7 +31,7 @@ NETWORK:
             - 1
         hard: pow2
 TRAIN: 
-    epoch: 72 
+    epoch: 73 
     optimizer: SGDm
     resume: null
     evaluate: false

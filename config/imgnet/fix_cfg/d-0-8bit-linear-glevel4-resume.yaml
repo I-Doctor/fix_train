@@ -51,6 +51,7 @@ TRAIN:
     resume: ../checkpoint/fix_experiment/imgnet/log_quantize_20200204_17-28-00/checkpoint_best_3.pkl
     evaluate: false
     learning_rate: 
+        - 0.005
         - 0.001
         - 0.0005
     decay_step:
