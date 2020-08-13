@@ -32,6 +32,7 @@ import torchvision.models as models
 from model import *
 from utils import *
 
+'''
 class MyDataParallel(nn.DataParallel):     
     def __getattr__(self, name):         
         print(self)
@@ -41,7 +42,7 @@ class MyDataParallel(nn.DataParallel):
         raise ValueError('data parrallel')
         
         return getattr(module,name)
-
+'''
 
 model_names = sorted(name for name in models.__dict__
                      if name.islower() and not name.startswith("__") and
@@ -78,38 +79,40 @@ def main(argv):
                               'fastest way to use PyTorch for either single node or '
                               'multi node data parallel training'
    )
-    #parser.add_argument('-a', '--arch', metavar='ARCH', default='resnet18',
-    #                     choices=model_names,
-    #                     help='model architecture: '
-    #                     + ' | '.join(model_names)
-    #                     + ' (default: resnet18)')
-    #parser.add_argument('-j', '--workers', default=4, type=int, metavar='N',
-    #                     help='number of data loading workers (default: 4)')
-    #parser.add_argument('-p', '--print-freq', default=10, type=int,
-    #                                        metavar='N', help='print frequency (default: 10)')
-    #parser.add_argument('--resume', default='', type=str, metavar='PATH',
-    #                                        help='path to latest checkpoint (default: none)')
-    #parser.add_argument('-e', '--evaluate', dest='evaluate', action='store_true',
-    #                                        help='evaluate model on validation set')
-    #parser.add_argument('--pretrained', dest='pretrained', action='store_true',
-    #                                        help='use pre-trained model')
-    #parser.add_argument('--world-size', default=-1, type=int,
-    #                                        help='number of nodes for distributed training')
-    #parser.add_argument('--rank', default=-1, type=int,
-    #                                        help='node rank for distributed training')
-    #parser.add_argument('--dist-url', default='tcp://224.66.41.62:23456', type=str,
-    #                                        help='url used to set up distributed training')
-    #parser.add_argument('--dist-backend', default='nccl', type=str,
-    #                                        help='distributed backend')
-    #parser.add_argument('--seed', default=None, type=int,
-    #                                        help='seed for initializing training. ')
-    #parser.add_argument('--gpu', default=None, type=int,
-    #                                        help='GPU id to use.')
-    #parser.add_argument('--multiprocessing-distributed', action='store_true',
-    #                     help='Use multi-processing distributed training to launch '
-    #                          'N processes per node, which has N GPUs. This is the '
-    #                          'fastest way to use PyTorch for either single node or '
-    #                          'multi node data parallel training')
+    '''
+    parser.add_argument('-a', '--arch', metavar='ARCH', default='resnet18',
+                         choices=model_names,
+                         help='model architecture: '
+                         + ' | '.join(model_names)
+                         + ' (default: resnet18)')
+    parser.add_argument('-j', '--workers', default=4, type=int, metavar='N',
+                         help='number of data loading workers (default: 4)')
+    parser.add_argument('-p', '--print-freq', default=10, type=int,
+                                            metavar='N', help='print frequency (default: 10)')
+    parser.add_argument('--resume', default='', type=str, metavar='PATH',
+                                            help='path to latest checkpoint (default: none)')
+    parser.add_argument('-e', '--evaluate', dest='evaluate', action='store_true',
+                                            help='evaluate model on validation set')
+    parser.add_argument('--pretrained', dest='pretrained', action='store_true',
+                                            help='use pre-trained model')
+    parser.add_argument('--world-size', default=-1, type=int,
+                                            help='number of nodes for distributed training')
+    parser.add_argument('--rank', default=-1, type=int,
+                                            help='node rank for distributed training')
+    parser.add_argument('--dist-url', default='tcp://224.66.41.62:23456', type=str,
+                                            help='url used to set up distributed training')
+    parser.add_argument('--dist-backend', default='nccl', type=str,
+                                            help='distributed backend')
+    parser.add_argument('--seed', default=None, type=int,
+                                            help='seed for initializing training. ')
+    parser.add_argument('--gpu', default=None, type=int,
+                                            help='GPU id to use.')
+    parser.add_argument('--multiprocessing-distributed', action='store_true',
+                         help='Use multi-processing distributed training to launch '
+                              'N processes per node, which has N GPUs. This is the '
+                              'fastest way to use PyTorch for either single node or '
+                              'multi node data parallel training')
+    '''
 
 
     #-----------------------LOAD AND CHECK PARAMETER---------------------#
@@ -119,17 +122,16 @@ def main(argv):
     cfg = create_default_cfg()  
     update_cfg(cfg, args.config_file)  
 
-    net_cfg   = cfg.NETWORK
-    train_cfg = cfg.TRAIN
-    data_cfg  = cfg.DATA
-    log_cfg   = cfg.LOG
-
     cfg.data_root = args.data_root
     cfg.output_dir = args.output_dir
     cfg.gpu = args.gpu
     cfg.multiprocessing_distributed = args.multiprocessing_distributed
-
     print_cfg(cfg)
+
+    net_cfg   = cfg.NETWORK
+    train_cfg = cfg.TRAIN
+    data_cfg  = cfg.DATA
+    log_cfg   = cfg.LOG
     
     # check learning rate adjustment parameters are valid
     if isinstance(train_cfg.learning_rate, list) & (isinstance(train_cfg.decay_step, list)):
@@ -156,7 +158,8 @@ def main(argv):
     
     # check and set whole system
     if args.gpu is not None:
-        #os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu
+        # os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu
+        # set this by main_worker bellow
         warnings.warn('You have chosen a specific GPU. This will completely '
                        'disable data parallelism.')
     
@@ -180,6 +183,8 @@ def main(argv):
 
 
 def main_worker(gpu, ngpus_per_node, cfg):
+
+    #-----------------------SET PARAMETERS---------------------#
     global best_acc1
     global best_epo1
     global parallel
@@ -194,6 +199,17 @@ def main_worker(gpu, ngpus_per_node, cfg):
     LR_start = train_cfg.learning_rate[0]
     START_epoch = 0
 
+
+    #--------------CREATE MODEL AND SET PARALLEL TRAINING------------------#
+    if net_cfg.pretrained:
+        print("=> using pre-trained model '{}-{}'".format(net_cfg.arch, net_cfg.depth))
+        #model = models.__dict__[net_cfg.arch+str(net_cfg.depth)](pretrained=True)
+        model = resnet(net_cfg.depth, net_cfg.num_classes, net_cfg.q_cfg)
+    else:
+        print("=> creating model '{}-{}'".format(net_cfg.arch, net_cfg.depth))
+        #model = models.__dict__[net_cfg.arch+str(net_cfg.depth)]()
+        model = resnet(net_cfg.depth, net_cfg.num_classes, net_cfg.q_cfg)
+
     if cfg.gpu is not None:
         print("Use GPU: {} for training".format(cfg.gpu))
     
@@ -206,19 +222,7 @@ def main_worker(gpu, ngpus_per_node, cfg):
             cfg.rank = cfg.rank * ngpus_per_node + gpu
         dist.init_process_group(backend=cfg.dist_backend, init_method=cfg.dist_url,
                                 world_size=cfg.world_size, rank=cfg.rank)
-
-
-    # create model
-    if net_cfg.pretrained:
-        print("=> using pre-trained model '{}-{}'".format(net_cfg.arch, net_cfg.depth))
-        #model = models.__dict__[net_cfg.arch+str(net_cfg.depth)](pretrained=True)
-        model = resnet(net_cfg.depth, net_cfg.num_classes, net_cfg.q_cfg)
-    else:
-        print("=> creating model '{}-{}'".format(net_cfg.arch, net_cfg.depth))
-        #model = models.__dict__[net_cfg.arch+str(net_cfg.depth)]()
-        model = resnet(net_cfg.depth, net_cfg.num_classes, net_cfg.q_cfg)
-
-    
+   
     if cfg.distributed:
         # For multiprocessing distributed, DistributedDataParallel constructor
         # should always set the single device scope, otherwise,
@@ -250,16 +254,17 @@ def main_worker(gpu, ngpus_per_node, cfg):
             parallel = True
             model = torch.nn.DataParallel(model).cuda()
     
-
+    # measure the model
     if data_cfg.dataset=='ILSVRC2012_img':
         df = torch_summarize_df(input_size=(3,256,256), model=model)
     else:
         df = torch_summarize_df(input_size=(3,32,32), model=model)
     print(df)
-    print('Total params: %.2fM' % (sum(p.numel() for p in model.parameters())/1000000.0))
+    print('Total params: %.3f M' % (sum(p.numel() for p in model.parameters())/1000000.0))
 
+
+    #----------------------DEFINE OPTIMIZER---------------------------#
     print("===start defining optimizer===")
-    # define loss function (criterion) and optimizer
     criterion = nn.CrossEntropyLoss().cuda(cfg.gpu)
     
     opt_Adam  = optim.Adam( model.parameters(), lr = LR_start, 
@@ -271,6 +276,7 @@ def main_worker(gpu, ngpus_per_node, cfg):
                             weight_decay=train_cfg.weight_decay) 
     opt_RMS   = optim.RMSprop(model.parameters(), lr = LR_start, 
                               weight_decay=5e-4)
+
     if train_cfg.optimizer == "Adam":
         print("  Use optimizer Adam.")
         optimizer = opt_Adam    
@@ -282,7 +288,7 @@ def main_worker(gpu, ngpus_per_node, cfg):
         optimizer = opt_SGD
     
     
-    # optionally resume from a checkpoint
+    #----------------OPTIONALLY RESUME FROM A CHECKPOINT----------------#
     if train_cfg.resume is not None:
         if os.path.isfile(train_cfg.resume):
             print("=> loading checkpoint '{}'".format(train_cfg.resume))
@@ -297,14 +303,19 @@ def main_worker(gpu, ngpus_per_node, cfg):
                 best_acc1 = best_acc1.to(cfg.gpu)
             model.load_state_dict(checkpoint['state_dict'])
             #print('debug:',checkpoint['state_dict'])
+
+            # there will be some bugs if we load optimizer for resuming with
+            # different training stratgy, so we create optimizer when resume
             #optimizer.load_state_dict(checkpoint['optimizer'])
             print("=> loaded checkpoint '{}' (epoch {})"
                    .format(train_cfg.resume, checkpoint['epoch']))
         else:
             print("=> no checkpoint found at '{}'".format(train_cfg.resume))
-        if parallel and net_cfg.quantize:
+
+        # quantize if START_epoch from checkpoint is larger than float_epoch
+        if parallel and net_cfg.quantize and net_cfg.float_epoch < START_epoch:
             model.module.enable_quantize()
-        elif net_cfg.quantize:
+        elif net_cfg.quantize and net_cfg.float_epoch < START_epoch:
             model.enable_quantize()
     
     cudnn.benchmark = True
@@ -312,8 +323,8 @@ def main_worker(gpu, ngpus_per_node, cfg):
     #print(torch_summarize(model))
 
 
+    #-----------------------DATA LOADING--------------------------#
     print("===start loading data===")
-    # Data loading code
     traindir = os.path.join(cfg.data_root, data_cfg.dataset+'_train')
     valdir = os.path.join(cfg.data_root, data_cfg.dataset+'_val')
     #normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
@@ -372,6 +383,8 @@ def main_worker(gpu, ngpus_per_node, cfg):
         val_dataset, batch_size=data_cfg.batch_size, shuffle=False,
         num_workers=data_cfg.num_works, pin_memory=True)
     
+    
+    #---------------------VALIDATE OR TRAIN------------------------#
     if train_cfg.evaluate:
         validate(val_loader, model, criterion, cfg)
         if data_cfg.dataset=='ILSVRC2012_img':
@@ -380,17 +393,21 @@ def main_worker(gpu, ngpus_per_node, cfg):
             finalreport(val_loader, model, net_cfg.num_classes, cfg.cuda)
         return
     
+    # we define log_cfg.frequent > 200 as no log
     if log_cfg.frequent < 200:
         print("===creating hook_ctrls===")
         hooks = []
         for t in log_cfg.types:
+            # Hook_ctrl is a module to control hook, each for one type of data
             hooks.append(Hook_ctrl(model, t))
 
     print("===start train with epoch===")
     for epoch in range(START_epoch, train_cfg.epoch):
+        
         if cfg.distributed:
             train_sampler.set_epoch(epoch)
 
+        # adjust lr or quantize at the beginning of an epoch
         adjust_learning_rate(optimizer, epoch, train_cfg)
         if epoch == cfg.float_epoch and net_cfg.quantize:
             if parallel:
@@ -398,7 +415,7 @@ def main_worker(gpu, ngpus_per_node, cfg):
             else:
                 model.enable_quantize()
         
-        # train for one epoch
+        # train for one epoch, insert hooks and save output if meet frequence
         if epoch % log_cfg.frequent == 0 and log_cfg.frequent<200 :
             for h in hooks:
                 h.hook_insert()
@@ -417,7 +434,7 @@ def main_worker(gpu, ngpus_per_node, cfg):
         # evaluate on validation set
         acc1 = validate(val_loader, model, criterion, cfg)
         
-        # remember best_acc1 @ best_epo1 and save checkpoint
+        # record best_acc1 @ best_epo1 and save checkpoint at the end of an epoch
         if acc1 > best_acc1 :
             best_acc1 = acc1
             best_epo1 = epoch 
@@ -433,9 +450,10 @@ def main_worker(gpu, ngpus_per_node, cfg):
                     'best_acc1': best_acc1,
                     'best_epo1': best_epo1,
                 }
-                torch.save(checkpoint, os.path.join(cfg.output_dir, 'checkpoint_best_%s.pkl'%(epoch//20)))
+                #torch.save(checkpoint, os.path.join(cfg.output_dir, 'checkpoint_best_%s.pkl'%(epoch//20)))
+                torch.save(checkpoint, os.path.join(cfg.output_dir, 'checkpoint_best.pkl'))
 
-        # save checkpoint frequentily
+        # save checkpoint frequently
         if epoch % cfg.checkpoint_freq == 0:
             if not cfg.multiprocessing_distributed or \
             (cfg.multiprocessing_distributed and cfg.rank % ngpus_per_node == 0):
@@ -451,6 +469,7 @@ def main_worker(gpu, ngpus_per_node, cfg):
                 }
                 torch.save(checkpoint, os.path.join(cfg.output_dir, 'checkpoint_%s.pkl'%epoch))
 
+    # validate(imgnet) or report(cifar10) at the end of training
     if data_cfg.dataset=='ILSVRC2012_img':
         acc1 = validate(val_loader, model, criterion, cfg, True)
         acc1 = validate(val_loader, model, criterion, cfg, True)
