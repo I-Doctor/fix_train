@@ -8,7 +8,7 @@ __all__ = ['simplenet', 'SMPNet']
 
 
 class SMPNet(nn.Module):
-    ''' VGGNet class define which support quantize and asparse
+    ''' VGGNet class define which support quantize
         
         depth       : depth of the network
         num_classes : how many classed does the network used to classifying
@@ -55,10 +55,12 @@ class SMPNet(nn.Module):
 
             if q_cfg is not None:
                 conv2d = QConv2d(in_channels, v, kernel_size=3, stride=1, padding=1, bias=False, q_cfg=q_cfg)
+                bn     = nn.BatchNorm2d(v)
             else:
                 conv2d = nn.Conv2d(in_channels, v, kernel_size=3, stride=1, padding=1, bias=False)
+                bn     = nn.BatchNorm2d(v)
             if batch_norm:
-                layers += [conv2d, nn.BatchNorm2d(v), nn.ReLU(inplace=True)]
+                layers += [conv2d, bn, nn.ReLU(inplace=True)]
             else:
                 layers += [conv2d, nn.ReLU(inplace=True)]
             in_channels = v
