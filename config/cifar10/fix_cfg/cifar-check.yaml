@@ -1,7 +1,8 @@
 data_root: /home/eva_share/datasets/
-float_epoch: 1
+float_epoch: 2
 print_freq: 50
 NETWORK: 
+    arch: resnet
     depth: 20
     num_classes: 10
     batchnorm: true
@@ -22,27 +23,25 @@ NETWORK:
             - max
             - max
         group: 
+            - nc
             - n
-            - c
-            - n
+            - nc
         level:
-            - 1
             - 0
-            - 1
-        hard: unbias
+            - 0
+            - 0
+        hard: pow
 TRAIN: 
-    epoch: 3
+    epoch: 17
     optimizer: SGDm
     learning_rate: 
-        - 0.125
-        - 0.015
-        - 0.0015
-        - 0.0008
+        - 0.1
+        - 0.01
+        - 0.001
     decay_step:
         - 0
-        - 81
-        - 122
-        - 164
+        - 8
+        - 12
     warmup: false
     weight_decay: 0.0001
     momentum: 0.9
@@ -64,8 +63,9 @@ DATA:
     valid_batch_size: 256
     valid_num_works: 8
 LOG:
-    frequent: 200
+    frequent: 3
     types:
         - e
         - a
         - w
+        - g

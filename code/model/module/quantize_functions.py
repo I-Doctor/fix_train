@@ -1,14 +1,15 @@
 
-import pdb
-import math
-import warnings
-import numpy as np
+#import pdb
+#import math
+#import warnings
+#import numpy as np
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
+#import torch.nn as nn
+#import torch.nn.functional as F
 from torch.autograd.function import Function
 
-__all__ = ['QConv2d', 'QLinear']
+__all__ = ['Quantize_W', 'Quantize_A', 'Quantize_G']
+
 
 
 class Quantize_W(Function):
@@ -658,137 +659,6 @@ class Quantize_G(Function):
 
 
 
-def wQuantize(g, bw=8, linear=None, signed=True, stochastic=True, dequantize=True, inplace=False, magnitude=None, hard='real'):
-    ''' This is the function which does g quantize by calling Quantize_G
-    '''
-    return Quantize_W.apply(g, bw, signed, stochastic, dequantize, inplace, magnitude, hard)
-
-
-def aQuantize(g, bw=8, signed=True, stochastic=True, dequantize=True, inplace=False, magnitude=None, hard='real'):
-    ''' This is the function which does g quantize by calling Quantize_G
-    '''
-    return Quantize_A.apply(g, bw, False, stochastic, dequantize, inplace, magnitude, hard)
-
-
-def gQuantize(g, bw=8, signed=True, stochastic=True, dequantize=True, inplace=False, magnitude=None, hard='real'):
-    ''' This is the function which does g quantize by calling Quantize_G
-    '''
-    return Quantize_G.apply(g, bw, signed, stochastic, dequantize, inplace, magnitude, hard)
-
-
-
-class QConv2d(nn.Conv2d):
-    """quantized conv2d
-    """
-
-    def __init__(self, in_planes, out_planes, kernel_size, stride=1, padding=0,
-                 dilation=1, groups=1, bias=True, q_cfg=None):
-        super(QConv2d, self).__init__(in_planes, out_planes, kernel_size, stride, 
-                padding, dilation, groups, bias)
-
-        self.quantize    = False
-        self.bw_a        = q_cfg["bw"][0]         # acivation bit width
-        self.bw_w        = q_cfg["bw"][1]         # weight bit width
-        self.bw_g        = q_cfg["bw"][2]         # gradient bit width
-        self.linear_a    = q_cfg["linear"][0]     
-        self.linear_w    = q_cfg["linear"][1]     
-        self.linear_g    = q_cfg["linear"][2]    
-        self.signed      = q_cfg["signed"]        # bool of signed quantize
-        self.stochastic  = q_cfg["stochastic"]    # bool of stochastic rounding 
-        self.erange      = q_cfg["erange"]        
-        self.group       = q_cfg["group"]
-        self.level_a     = q_cfg["level"][0]
-        self.level_w     = q_cfg["level"][1]
-        self.level_g     = q_cfg["level"][2]
-        self.hard        = q_cfg["hard"]
-
-        self.quantize_a = Quantize_A
-        self.quantize_w = Quantize_W
-        self.quantize_g = Quantize_G
-
-    def forward(self, input):
-        
-        #print("debug conv stochastic:",self.stochastic)
-        if self.training:
-            #print("debug self.train:",self.training)
-            Qinput  = self.quantize_a.apply(input, self.bw_a, self.linear_a, False,
-                      self.stochastic, self.erange[0], self.group[0], self.level_a, self.hard)
-        else:
-            #print("debug conv test sto false")
-            Qinput  = self.quantize_a.apply(input, self.bw_a, self.linear_a, False,
-                      False, self.erange[0], self.group[0], self.level_a, self.hard)
-        Qweight = self.quantize_w.apply(self.weight, self.bw_w, self.linear_w, 
-                  self.signed, self.stochastic, self.erange[1], self.group[1], self.level_w, self.hard) 
-        #print("debug qinput requires grad: ", Qinput.requires_grad)
-        #print("debug qweight requires grad: ", Qweight.requires_grad)
-
-        if self.quantize:
-            output = F.conv2d(Qinput, Qweight, self.bias, 
-                               self.stride, self.padding, self.dilation, self.groups)
-            if self.bw_g is not None:
-                output = self.quantize_g.apply(output, self.bw_g, self.linear_g, 
-                         self.signed, True, self.erange[2], self.group[2],self.level_g, self.hard)
-        else:
-            output = F.conv2d(input, self.weight, self.bias, 
-                              self.stride, self.padding, self.dilation, self.groups)
-
-        return output
-
-
-
-class QLinear(nn.Linear):
-    """quantized linear
-    """
-
-    def __init__(self, in_planes, out_planes, bias=True, q_cfg=None):
-        super(QLinear, self).__init__(in_planes, out_planes, bias)
-
-        self.quantize    = False
-        self.bw_a        = q_cfg["bw"][0]        # acivation bit width
-        self.bw_w        = q_cfg["bw"][1]        # weight bit width
-        self.bw_g        = q_cfg["bw"][2]        # gradient bit width
-        self.linear_a    = q_cfg["linear"][0]    
-        self.linear_w    = q_cfg["linear"][1]    
-        self.linear_g    = q_cfg["linear"][2]   
-        self.signed      = q_cfg["signed"]       # bool of signed quantize
-        self.stochastic  = q_cfg["stochastic"]   # bool of stochastic rounding 
-        self.erange      = q_cfg["erange"]      
-        self.group       = q_cfg["group"]
-        self.level_a     = q_cfg["level"][0]
-        self.level_w     = q_cfg["level"][1]
-        self.level_g     = q_cfg["level"][2]
-        self.hard        = q_cfg["hard"]
-
-        self.quantize_a = Quantize_A
-        self.quantize_w = Quantize_W
-        self.quantize_g = Quantize_G
-
-    def forward(self, input):
-
-        #print("debug linear stochastic:",self.stochastic)
-        if self.training:
-            #print("debug linear training:",self.training)
-            Qinput  = self.quantize_a.apply(input, self.bw_a, self.linear_a, False,
-                      self.stochastic, self.erange[0], self.group[0], self.level_a, self.hard)
-        else:
-            #print("debug linear test set sto false")
-            Qinput  = self.quantize_a.apply(input, self.bw_a, self.linear_a, False,
-                      False, self.erange[0], self.group[0], self.level_a, self.hard)
-        Qweight = self.quantize_w.apply(self.weight, self.bw_w, self.linear_w, 
-                  self.signed, self.stochastic, self.erange[1], self.group[1], self.level_w, self.hard) 
-
-        if self.quantize:
-            output = F.linear(Qinput, Qweight, self.bias)
-            if self.bw_g is not None:
-                output = self.quantize_g.apply(output, self.bw_g, self.linear_g, 
-                         self.signed, True, self.erange[2], self.group[2], 
-                         self.level_g, self.hard)
-        else:
-            output = F.linear(input, self.weight, self.bias)
-
-        return output
-
-
 if __name__ == '__main__':
 
     x = torch.tensor([[[[1.00,2.00,3.00,4.00],
@@ -811,6 +681,4 @@ if __name__ == '__main__':
     z = (y*xx).sum()
     xf=z.backward()
     print(xf)
-
-
 

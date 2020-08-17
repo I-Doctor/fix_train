@@ -17,12 +17,12 @@ echo "Creating output dir: ${output_path}"
 mkdir -p ${output_path}
 
 #--------------------run python------------------#
-cfg_file="60-4bit-linear-glevel4-block"
+cfg_file="70-4bit-linear-glevel4-block"
 cfg_path="../config/cifar10/fix_cfg/"
 python -u main.py				        \
 	${data_root}					\
 	${cfg_path}${cfg_file}.yaml		\
 	${output_path}					\
-    --gpu 6                         \
+    --gpu 5                         \
 	2>&1 | tee ${output_path}/${cfg_file}.log
 

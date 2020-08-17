@@ -26,11 +26,15 @@ import torch.utils.data
 import torch.utils.data.distributed
 import torchvision.transforms as transforms
 import torchvision.datasets as datasets
-import torchvision.models as models
+#import torchvision.models as models
 
 # import customized libs
-from model import *
+#from model import *
 from utils import *
+import model as models
+model_names = sorted(name for name in models.__dict__
+                     if name.islower() and not name.startswith("__") and
+                     callable(models.__dict__[name]))
 
 '''
 class MyDataParallel(nn.DataParallel):     
@@ -44,9 +48,6 @@ class MyDataParallel(nn.DataParallel):
         return getattr(module,name)
 '''
 
-model_names = sorted(name for name in models.__dict__
-                     if name.islower() and not name.startswith("__") and
-                     callable(models.__dict__[name]))
 
 best_acc1 = 0
 best_epo1 = 0
@@ -203,12 +204,16 @@ def main_worker(gpu, ngpus_per_node, cfg):
     #--------------CREATE MODEL AND SET PARALLEL TRAINING------------------#
     if net_cfg.pretrained:
         print("=> using pre-trained model '{}-{}'".format(net_cfg.arch, net_cfg.depth))
+        #model = resnet(net_cfg.depth, net_cfg.num_classes, net_cfg.q_cfg)
         #model = models.__dict__[net_cfg.arch+str(net_cfg.depth)](pretrained=True)
-        model = resnet(net_cfg.depth, net_cfg.num_classes, net_cfg.q_cfg)
+        model = models.__dict__[net_cfg.arch](net_cfg.depth, net_cfg.num_classes, 
+                                              net_cfg.q_cfg)
     else:
         print("=> creating model '{}-{}'".format(net_cfg.arch, net_cfg.depth))
+        #model = resnet(net_cfg.depth, net_cfg.num_classes, net_cfg.q_cfg)
         #model = models.__dict__[net_cfg.arch+str(net_cfg.depth)]()
-        model = resnet(net_cfg.depth, net_cfg.num_classes, net_cfg.q_cfg)
+        model = models.__dict__[net_cfg.arch](net_cfg.depth, net_cfg.num_classes, 
+                                              net_cfg.q_cfg)
 
     if cfg.gpu is not None:
         print("Use GPU: {} for training".format(cfg.gpu))
@@ -641,7 +646,8 @@ def finalreport(testloader, net, num_class, use_cuda):
 
 
 def accuracy(output, target, topk=(1,)):
-    """Computes the accuracy over the k top predictions for the specified values of k"""
+    """ Computes the accuracy over the k top predictions for the specified values of k
+    """
     with torch.no_grad():
         maxk = max(topk)
         batch_size = target.size(0)
