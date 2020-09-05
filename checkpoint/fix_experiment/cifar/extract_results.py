@@ -23,13 +23,13 @@ import matplotlib.pyplot as plt
 def clean(s):
     ''' clean string to drop , ' : [ ] { } and set bool to T F
     '''
-
     return s.replace(",","").replace("'","").replace(':','').replace('[','').replace(']','').replace('{','').replace('}','').replace('True','T').replace('False','F').replace('None','N')
 
 
-def check_column(configs, column_label):
-    ''' check if there is already column named column_label '''
 
+def check_column(configs, column_label):
+    ''' check if there is already column named column_label
+    '''
     if column_label in configs.columns.values.tolist():
         return True
     else:
@@ -43,7 +43,6 @@ def add_line(configs, count, wordlist, pos):
         wordlist is the word list of this line
         pos=1 means first level configs and pos=3 means second
     '''
-
     # first level configs
     if pos == 1:
         column_label = wordlist[0]
@@ -285,6 +284,7 @@ def main(argv):
         # compare all curves throught figures
         else:
             exit("can't compare all results of different configs")
+
     # plot one type of curves of each config onto figures
     elif args.type == 'loss' or args.type == 'acc':
         train_data = values['train_'+args.type] 
@@ -315,8 +315,9 @@ def main(argv):
                            kind='line')
             fig.show()
             fig.savefig(os.path.join(args.output_dir, args.type+'_'+titles[i]+'.png'))
-    elif args.type == 'data_range':
-        pass
+
+    else:
+        exit('wrong type arguement')
 
 
 

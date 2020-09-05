@@ -8,9 +8,9 @@ NETWORK:
     quantize: true
     q_cfg:
         bw:
-            - 6
-            - 6
-            - 6
+            - 4
+            - 4
+            - 4
         linear: 
             - null
             - null

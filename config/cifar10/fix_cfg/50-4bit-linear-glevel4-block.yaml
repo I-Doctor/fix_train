@@ -8,15 +8,15 @@ NETWORK:
     quantize: true
     q_cfg:
         bw:
-            - 4
-            - 4
-            - 4
+            - 6
+            - 6
+            - 6
         linear: 
             - null
             - null
             - null
         signed: true
-        stochastic: true
+        stochastic: false
         qfirst: false
         qlinear: false
         qbn: false
@@ -25,16 +25,16 @@ NETWORK:
             - max
             - max
         group: 
-            - nc
-            - n
-            - nc
+            - false
+            - false
+            - false
         level:
             - 1
             - 1
             - 1
         hard: pows
 TRAIN: 
-    epoch: 165
+    epoch: 181
     optimizer: SGDm
     learning_rate: 
         - 0.1
