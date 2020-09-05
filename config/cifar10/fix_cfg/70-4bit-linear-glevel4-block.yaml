@@ -27,7 +27,7 @@ NETWORK:
             - false
         level:
             - 1
-            - 2
+            - 3
             - 3
         hard: pow
 TRAIN: 
