@@ -1,5 +1,5 @@
 data_root: /home/eva_share/datasets/ILSVRC2012/ILSVRC2012_img_train
-float_epoch: 0
+float_epoch: 1
 print_freq: 50
 NETWORK: 
     depth: 18
@@ -8,9 +8,9 @@ NETWORK:
     quantize: true
     q_cfg:
         bw:
-            - 10
-            - 11
-            - 11
+            - 12
+            - 13
+            - 13
         linear: 
             - null
             - null
@@ -22,16 +22,24 @@ NETWORK:
             - max
             - max
         group: 
+<<<<<<< HEAD
+            - n
+=======
             - nc
-            - nc
+>>>>>>> 99f66d4fbf29fe8eddecd6e38e419c5ebe27b0a7
+            - n
             - nc
         level:
             - 1
             - 1
             - 1
-        hard: pow
+        hard: pows
 TRAIN: 
-    epoch: 52 
+<<<<<<< HEAD
+    epoch: 85 
+=======
+    epoch: 80 
+>>>>>>> 99f66d4fbf29fe8eddecd6e38e419c5ebe27b0a7
     optimizer: SGDm
     # old model
     #resume: ../checkpoint/fix_experiment/imgnet/log_quantize_20200104/checkpoint_60.pkl
@@ -44,18 +52,36 @@ TRAIN:
     # resume2 new model
     #resume: ../checkpoint/fix_experiment/imgnet/log_quantize_20200130_15-35-14/checkpoint_best_3.pkl
     # resume3 new model
+    #resume: ../checkpoint/fix_experiment/imgnet/log_quantize_20200131_01-23-37/checkpoint_best_3.pkl
     # resume 455 model
-    resume: ../checkpoint/fix_experiment/imgnet/log_quantize_20200131_23-39-06/checkpoint_best_2.pkl
+<<<<<<< HEAD
+    #resume: ../checkpoint/fix_experiment/imgnet/log_quantize_20200131_23-39-06/checkpoint_best_2.pkl
+    #
+    #resume: ../checkpoint/fix_experiment/imgnet/log_quantize_20200227_14-04-18/checkpoint_best_3.pkl
+    resume: ../checkpoint/fix_experiment/imgnet/log_quantize_20200227_14-04-18/checkpoint_60.pkl
+=======
+    #resume: ../checkpoint/fix_experiment/imgnet/log_quantize_20200203_00-56-59/checkpoint_best_3.pkl
+    # resume 677 model
+    resume: ../checkpoint/fix_experiment/imgnet/log_quantize_20200204_17-28-00/checkpoint_best_3.pkl
+>>>>>>> 99f66d4fbf29fe8eddecd6e38e419c5ebe27b0a7
     evaluate: false
     learning_rate: 
-        - 0.005
         - 0.001
+<<<<<<< HEAD
+        - 0.0006
+=======
+        - 0.0005
+>>>>>>> 99f66d4fbf29fe8eddecd6e38e419c5ebe27b0a7
     decay_step:
         - 0
-        - 49
+        - 75
     warmup: false
     weight_decay: 0.0001
-    momentum: 0.7
+<<<<<<< HEAD
+    momentum: 0.9
+=======
+    momentum: 0.8
+>>>>>>> 99f66d4fbf29fe8eddecd6e38e419c5ebe27b0a7
 DATA:
     dataset: ILSVRC2012_img
     batch_size: 1024

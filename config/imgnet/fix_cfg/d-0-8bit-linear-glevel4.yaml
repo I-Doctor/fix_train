@@ -5,12 +5,12 @@ NETWORK:
     depth: 18
     num_classes: 1000
     batchnorm: true
-    quantize: true
+    quantize: false
     q_cfg:
         bw:
-            - 5
             - 6
-            - 6
+            - 7
+            - 7
         linear: 
             - null
             - null
@@ -23,15 +23,15 @@ NETWORK:
             - max
         group: 
             - nc
-            - nc
+            - n
             - nc
         level:
             - 1
             - 1
-            - 1
-        hard: pow2
+            - 2
+        hard: pows
 TRAIN: 
-    epoch: 73 
+    epoch: 85 
     optimizer: SGDm
     resume: null
     evaluate: false
@@ -42,12 +42,12 @@ TRAIN:
         - 0.0005
     decay_step:
         - 0
-        - 23
-        - 45
-        - 65
+        - 28
+        - 56
+        - 80
     warmup: false
     weight_decay: 0.0001
-    momentum: 0.8
+    momentum: 0.9
 DATA:
     dataset: ILSVRC2012_img
     batch_size: 1024

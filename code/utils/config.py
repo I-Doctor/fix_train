@@ -34,7 +34,7 @@ def create_default_cfg():
     config.visible_device = "0"
     ''' cuda visible device should be given every time you run the code'''
     # The epoch frequence of saving snapshot."
-    config.checkpoint_freq = 20
+    config.checkpoint_freq = 30
     # The batch frequence of output."
     config.print_freq = 30
     # The epoch starting quantize."
@@ -43,14 +43,14 @@ def create_default_cfg():
     config.NETWORK = edict()
     # Depth of ResNet model."
     config.NETWORK.arch = 'resnet'
-    config.NETWORK.depth = 18
+    config.NETWORK.depth = 20
     config.NETWORK.num_classes = 10
     # using batch normalization when traning."
     config.NETWORK.batchnorm = True
     config.NETWORK.pretrained = False
     # using quantization when traning."
     config.NETWORK.quantize = False
-    config.NETWORK.quantize_cfg = None
+    config.NETWORK.q_cfg = None
 
     config.TRAIN = edict()
     # Resume or not"
@@ -58,7 +58,7 @@ def create_default_cfg():
     # Evaluate or not"
     config.TRAIN.evaluate = False
     # The number of epoch of training."
-    config.TRAIN.epoch = 170
+    config.TRAIN.epoch = 165
     # The optimizer of training.(SGD,Adam,SGDm)"
     config.TRAIN.optimizer = 'SGDm'
     # Learning rate (list if change during the training)."

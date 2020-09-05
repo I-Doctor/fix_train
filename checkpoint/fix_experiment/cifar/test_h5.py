@@ -7,8 +7,8 @@ import sys
 groupdim = 0
 dirname = 'log_quantize_check'
 typename = 'a'
-epoch = 90
-blocknum = 'layers.1.2.'
+epoch = 15
+blocknum = 'layers.2.0.'
 layernum = 2
 layername = (blocknum+'relu'+str(layernum)) if typename=='a' else (blocknum+'conv'+str(layernum))
 filename = os.path.join(dirname,'checkpoint_'+typename+'_'+str(epoch)+'.h5')
@@ -22,6 +22,7 @@ keys = f.keys()
 for layer_name in keys:
     layer_data = f[layer_name][:]
     layer_name = layer_name[0:-8] if layer_name[-1]=='b' else layer_name[0:-6]
+    #print(layer_name)
     if layer_name == layername:
         print(layer_name)
         shape = layer_data.shape

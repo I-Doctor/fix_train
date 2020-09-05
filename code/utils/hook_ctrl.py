@@ -3,6 +3,8 @@ import numpy as np
 import h5py
 import torch
 import torch.nn as nn
+
+# import
 from .summary import get_names_dict
 from .logger import Logger
 from .plot import *
@@ -73,6 +75,27 @@ class Hook_ctrl:
                                 self.store_list[m_key]['bias'] = module.bias.data.cpu().numpy()
                             else:
                                 self.store_list[m_key]['bias'] = None
+                    elif hook_type == 'g' and input[0] is not None \
+                            and hasattr(module,'weight') \
+                            and len(input)>1:
+                        # conv1 layer input0 is None, QConv2d len(input)==1 after quantize_enable
+                        #print('debug g input module', module)
+                        #print('debug len',len(input))
+                        #for temp in range(len(input)-1):
+                        #    print('debug size',input[temp].size()) 
+                        module_idx = len(self.store_list)
+                        m_key = module_idx + 1
+                        self.store_list[m_key] = OrderedDict()
+                        self.store_list[m_key]['name'] = name
+                        self.store_list[m_key]['class_name'] = class_name
+                        if len(input[0]) == 1:
+                            self.store_list[m_key]['raw_data'] = input[2].data.cpu().numpy()
+                            self.store_list[m_key]['device'] = str(input[2].device)
+                        else:
+                            self.store_list[m_key]['raw_data'] = input[1].data.cpu().numpy()
+                            self.store_list[m_key]['device'] = str(input[1].device)
+                        # fc   backward input[0] is g_bias, [1] is Error_i, [2] is g_weight
+                        # conv backward input[2] is g_bias, [0] is Error_i, [1] is g_weight
                     elif hook_type == 'a':
                         module_idx = len(self.store_list)
                         m_key = module_idx + 1
@@ -100,27 +123,6 @@ class Hook_ctrl:
                         self.store_list[m_key]['raw_data'] = output[0].data.cpu().numpy()
                         # backward output is tuple, output[0] is a tensor
                         self.store_list[m_key]['device'] = str(output[0].device)
-                    elif hook_type == 'g' and input[0] is not None \
-                            and hasattr(module,'weight') \
-                            and len(input)>1:
-                        # conv1 layer input0 is None, QConv2d len(input)==1 after quantize_enable
-                        #print('debug g input module', module)
-                        #print('debug len',len(input))
-                        #for temp in range(len(input)-1):
-                        #    print('debug size',input[temp].size()) 
-                        module_idx = len(self.store_list)
-                        m_key = module_idx + 1
-                        self.store_list[m_key] = OrderedDict()
-                        self.store_list[m_key]['name'] = name
-                        self.store_list[m_key]['class_name'] = class_name
-                        if len(input[0]) == 1:
-                            self.store_list[m_key]['raw_data'] = input[2].data.cpu().numpy()
-                            self.store_list[m_key]['device'] = str(input[2].device)
-                        else:
-                            self.store_list[m_key]['raw_data'] = input[1].data.cpu().numpy()
-                            self.store_list[m_key]['device'] = str(input[1].device)
-                        # fc   backward input[0] is g_bias, [1] is Error_i, [2] is g_weight
-                        # conv backward input[2] is g_bias, [0] is Error_i, [1] is g_weight
                     else:
                         pass
 

@@ -8,15 +8,18 @@ NETWORK:
     quantize: true
     q_cfg:
         bw:
-            - 4
-            - 4
-            - 4
+            - 8
+            - 8
+            - 8
         linear: 
             - null
             - null
             - null
         signed: true
-        stochastic: true
+        stochastic: false
+        qfirst: false
+        qlinear: false
+        qbn: false
         erange:
             - max
             - max
@@ -26,23 +29,23 @@ NETWORK:
             - false
             - false
         level:
-            - 1
-            - 1
+            - 0
+            - 0
             - 0
         hard: pow
 TRAIN: 
-    epoch: 165
+    epoch: 181
     optimizer: SGDm
     learning_rate: 
         - 0.1
         - 0.01
-        - 0.0009
+        - 0.001
         - 0.0005
     decay_step:
         - 0
-        - 80
-        - 120
-        - 160
+        - 81
+        - 122
+        - 163
     warmup: false
     weight_decay: 0.0001
     momentum: 0.9
@@ -65,3 +68,8 @@ DATA:
     valid_num_works: 8
 LOG:
     frequent: 200
+    types:
+        - a
+        - w
+        - e
+        - g
