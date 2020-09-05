@@ -10,7 +10,6 @@ __all__ = ['CurvePlot','LinePlot','DistriPlot']
 
 
 
-
 def DistriPlot(curve_num, file_path, file_list=[], index_list=[], pic_name=None, mean=None, std=None):
     pass
 
@@ -187,73 +186,3 @@ if __name__ == '__main__':
     CurvePlot(curve_num, file_path, file_list, l20cod_index_list, 'g_20convd_vs_m', mean, std)
     CurvePlot(curve_num, file_path, file_list, l21re1_index_list, 'g_21relu1_vs_m', mean, std)
     CurvePlot(curve_num, file_path, file_list,   fc_index_list,   'g_fc_vs_m'   , mean, std)
-    '''
-
-    # params of w curve plot
-    file_list  = ['w_max', 'w_p75', 'w_p50', 'w_p25', 'w_min']
-    curve_num  = len(file_list)
-    mean = 'w_mean'
-    std  = 'w_std'
-    #conv_index_list = [0,0,0,0,0]
-    conv_index_list = [2,2,2,2,2]
-    #bn_index_list = [1,1,1,1,1]
-    #l02co1_index_list = [10,10,10,10,10]
-    #l11bn2_index_list = [23,23,23,23,23]
-    #l20cod_index_list = [28,28,28,28,28]
-    #l21co2_index_list = [36,36,36,36,36]
-    #fc_index_list = [42,42,42,42,42]
-    #CurvePlot(curve_num, file_path, file_list, conv_index_list, 'a_conv')
-    CurvePlot(curve_num, file_path, file_list, conv_index_list,   'w_conv_vs_m' , mean, std)
-    CurvePlot(curve_num, file_path, file_list,   bn_index_list,   'w_bn_vs_m'   , mean, std)
-    CurvePlot(curve_num, file_path, file_list, l02co1_index_list, 'w_02conv1_vs_m', mean, std)
-    CurvePlot(curve_num, file_path, file_list, l11bn2_index_list, 'w_11bn2_vs_m', mean, std)
-    CurvePlot(curve_num, file_path, file_list, l20cod_index_list, 'w_20convd_vs_m', mean, std)
-    CurvePlot(curve_num, file_path, file_list, l21co2_index_list, 'w_21conv2_vs_m', mean, std)
-    CurvePlot(curve_num, file_path, file_list,   fc_index_list,   'w_fc_vs_m'   , mean, std)
-
-    # params of b curve plot
-    file_list  = ['b_max', 'b_p75', 'b_p50', 'b_p25', 'b_min']
-    curve_num  = len(file_list)
-    mean = 'b_mean'
-    std  = 'b_std'
-    bn_index_list = [0,0,0,0,0]
-    l02bn1_index_list = [5,5,5,5,5]
-    l11bn2_index_list = [11,11,11,11,11]
-    l20bnd_index_list = [14,14,14,14,14]
-    fc_index_list = [21,21,21,21,21]
-    #CurvePlot(curve_num, file_path, file_list, conv_index_list, 'a_conv')
-    CurvePlot(curve_num, file_path, file_list,   bn_index_list,   'b_bn_vs_m'   , mean, std)
-    CurvePlot(curve_num, file_path, file_list, l02bn1_index_list, 'b_02bn1_vs_m', mean, std)
-    CurvePlot(curve_num, file_path, file_list, l11bn2_index_list, 'b_11bn2_vs_m', mean, std)
-    CurvePlot(curve_num, file_path, file_list, l20bnd_index_list, 'b_20bnd_vs_m', mean, std)
-    CurvePlot(curve_num, file_path, file_list,   fc_index_list,   'b_fc_vs_m'   , mean, std)
-
-    # params of r curve plot
-    file_list  = ['sparse_ratio','sparse_ratio','sparse_ratio','sparse_ratio','sparse_ratio']
-    curve_num  = len(file_list)
-    layers_list = [1,3,5,6,7]
-    #CurvePlot(curve_num, file_path, file_list, conv_index_list, 'a_conv')
-    CurvePlot(curve_num, file_path, file_list, layers_list, 'density_of_each_l')
-
-    # params of w a g line plot
-    file_list  = ['a_max', 'a_p75', 'a_p50', 'a_p25', 'a_min']
-    line_num  = len(file_list)
-    line_index = 30
-    LinePlot(line_num, file_path, file_list, line_index, 'cross_layer_a30')
-
-    file_list  = ['g_max', 'g_p75', 'g_p50', 'g_p25', 'g_min']
-    line_num  = len(file_list)
-    line_index = 30
-    LinePlot(line_num, file_path, file_list, line_index, 'cross_layer_g30')
-
-    file_list  = ['w_max', 'w_p75', 'w_p50', 'w_p25', 'w_min']
-    line_num  = len(file_list)
-    line_index = 30
-    LinePlot(line_num, file_path, file_list, line_index, 'cross_layer_w30')
-
-    file_list  = ['sparse_ratio']
-    line_num  = len(file_list)
-    line_index = 30
-    LinePlot(line_num, file_path, file_list, line_index, 'cross_layer_density_30')
-    '''
-

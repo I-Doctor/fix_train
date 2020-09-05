@@ -1,9 +1,9 @@
 #!/usr/bin/env sh
 
 #--------------------set global param------------#
-data_root="/home/eva_share/datasets/ILSVRC2012/"
+data_root="/home/eva_share/datasets/"
 current_path=$(pwd)
-checkpoint_path="../checkpoint/fix_experiment/imgnet"
+checkpoint_path="../checkpoint/fix_experiment/cifar"
 
 
 #--------------------get date--------------------#
@@ -17,13 +17,12 @@ echo "Creating output dir: ${output_path}"
 mkdir -p ${output_path}
 
 #--------------------run python------------------#
-cfg_file="d-0-8bit-linear-glevel4"
-#cfg_file="d-0-8bit-linear-glevel4-evaluate"
-#cfg_file="d-0-8bit-linear-glevel4-resume"
-cfg_path="../config/imgnet/fix_cfg/"
-python -u main.py 	    	        \
+cfg_file="00-4bit-linear-glevel4-block"
+cfg_path="../config/cifar10/fix_cfg/"
+python -u main.py				        \
 	${data_root}					\
 	${cfg_path}${cfg_file}.yaml		\
 	${output_path}					\
+    --gpu 0                         \
 	2>&1 | tee ${output_path}/${cfg_file}.log
 

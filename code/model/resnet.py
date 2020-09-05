@@ -1,11 +1,16 @@
-import torch
+
+#import torch
 import torch.nn as nn
 import math
+
+# import customized quantized modules
 from .module import *
 
 __all__ = ['resnet', 'ResNet']
         
 
+
+# one of the building blocks of ResNet: BasicBlock
 class BasicBlock(nn.Module):
     ''' basicblock of resnet which supports quantize and asparse
 
@@ -59,6 +64,7 @@ class BasicBlock(nn.Module):
 
 
 
+# one of the building blocks of ResNet: Bottleneck
 class Bottleneck(nn.Module):
     ''' bottleneck of resnet which support quantize and asparse
 
@@ -113,6 +119,7 @@ class Bottleneck(nn.Module):
 
         return out
 
+
 # dictionary of layer numbers and block types to define the structure of model
 _depth = {
     'imagenet': {
@@ -133,8 +140,9 @@ _depth = {
 }
 
 
+# ResNet class
 class ResNet(nn.Module):
-    ''' ResNet class define which support quantize and asparse
+    ''' ResNet class define which support quantize
         
         depth       : depth of the network
         num_classes : how many classed does the network used to classifying
@@ -148,9 +156,10 @@ class ResNet(nn.Module):
         super(ResNet, self).__init__()
         
         if self.depth in _depth['imagenet']:
+
             # the first layer of imagenet-resnet
             self.inplanes = 64
-            if False:
+            if q_cfg is not None and q_cfg.qfirst:
                 self.conv1 = QConv2d(3, self.inplanes, kernel_size=7,
                                      stride=2, padding=3, bias=False, q_cfg=q_cfg)
             else:
@@ -177,7 +186,7 @@ class ResNet(nn.Module):
 
             # the pooling and linear layer at the end
             self.avgpool = nn.AvgPool2d(7)
-            if q_cfg is not None and False:
+            if q_cfg is not None and q_cfg.qlinear:
                 self.fc = QLinear(512 * block_type.expansion, num_classes, q_cfg=q_cfg)
             else:
                 self.fc = nn.Linear(512 * block_type.expansion, num_classes)
@@ -185,7 +194,7 @@ class ResNet(nn.Module):
         else:
             # the first layer of cifar-resnet
             self.inplanes = 16
-            if False:
+            if q_cfg is not None and q_cfg.qfirst:
                 self.conv1 = QConv2d(3, self.inplanes, kernel_size=3, stride=1,
                                      padding=1, bias=False, q_cfg=q_cfg)
             else:
@@ -212,7 +221,7 @@ class ResNet(nn.Module):
 
             # the pooling and linear layer at the end
             self.avgpool = nn.AvgPool2d(8)
-            if q_cfg is not None and False:
+            if q_cfg is not None and q_cfg.qlinear:
                 self.fc = QLinear(64 * block_type.expansion, num_classes, q_cfg=q_cfg)
             else:
                 self.fc = nn.Linear(64 * block_type.expansion, num_classes)
@@ -246,7 +255,7 @@ class ResNet(nn.Module):
         if self.depth in _depth['cifar']:
             # set downsample if activation shape changes
             if self.inplanes != planes * block.expansion:
-                if q_cfg is not None and (True):
+                if q_cfg is not None:
                     downsample = nn.Sequential(
                         QConv2d(self.inplanes, planes*block.expansion, kernel_size=1,
                                 stride=stride, bias=False, q_cfg=q_cfg),
@@ -287,12 +296,13 @@ class ResNet(nn.Module):
 
 
     def forward(self, x):
+
         x = self.conv1(x)
         x = self.bn1(x)
         x = self.relu(x)
-
         if self.maxpool is not None:
             x = self.maxpool(x)
+
         x = self.layers(x)
 
         x = self.avgpool(x)
@@ -320,6 +330,6 @@ class ResNet(nn.Module):
 def resnet(depth, num_classes, q_cfg=None):
     ''' function to get a ResNet
     '''
-
     return ResNet(depth, num_classes, q_cfg)
+
 

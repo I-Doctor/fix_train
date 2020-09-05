@@ -16,6 +16,7 @@ import torch.nn as nn
 import math
 from .module import *
 
+
 __all__ = ['vggnet', 'VGGNet']
 
 
@@ -27,6 +28,7 @@ _depth = {
 }
 
 
+
 class VGGNet(nn.Module):
     ''' VGGNet class define which support quantize and asparse
         
@@ -34,11 +36,9 @@ class VGGNet(nn.Module):
         num_classes : how many classed does the network used to classifying
         batchnorm   : batch norm or not
         q_cfg       : dict, how to do quantization
-        s_cfg       : dict, how to do asparse
     '''
 
-    def __init__(self, depth, num_classes=10, batchnorm=True,
-                 q_cfg=None, s_cfg=None):
+    def __init__(self, depth, num_classes=10, batchnorm=True, q_cfg=None):
 
         assert depth in _depth
         self.depth = depth
@@ -71,13 +71,12 @@ class VGGNet(nn.Module):
         self._initialize()
 
 
-    def _make_features(self, structure, batch_norm=True, q_cfg=None, s_cfg=None):
+    def _make_features(self, structure, batch_norm=True, q_cfg=None):
         ''' the function to make feature layers of vggnet
             
             structure   : class, block type of the layers set
             batch_norm  : batch norm or not
             q_cfg       : dict, how to do quantization
-            s_cfg       : dict, how to do asparse
         '''
         layers = []
         in_channels = 3
@@ -89,7 +88,7 @@ class VGGNet(nn.Module):
                 if q_cfg is not None:
                     conv2d = QConv2d(in_channels, v, kernel_size=3, padding=1, q_cfg=q_cfg)
                     if batch_norm:
-                        layers += [conv2d, QBatchNorm2d(v, q_cfg=q_cfg), nn.ReLU(inplace=True)]
+                        layers += [conv2d, nn.BatchNorm2d(v, q_cfg=q_cfg), nn.ReLU(inplace=True)]
                     else:
                         layers += [conv2d, nn.ReLU(inplace=True)]
                 else:
@@ -131,10 +130,10 @@ class VGGNet(nn.Module):
         '''
         self.apply(q_enable)
 
-    def enable_asparse(self):
-        ''' API to enable asparse
-        '''
-        self.apply(s_enable)
+    #def enable_asparse(self):
+    #    ''' API to enable asparse
+    #    '''
+    #    self.apply(s_enable)
 
     def output_asparse(self):
         ''' API to output asparsity
@@ -153,14 +152,10 @@ class VGGNet(nn.Module):
 
 
 
-def vggnet(depth, num_classes, batchnorm=True, q_cfg=None, s_cfg=None, p_cfg=None):
+def vggnet(depth, num_classes, batchnorm=True, q_cfg=None):
     ''' function to get a VGGNet
     '''
 
-    if p_cfg is None:
-        return VGGNet(depth, num_classes, batchnorm, q_cfg, s_cfg)
-    else:
-        Pvggnet = VGGNet(depth, num_classes, batchnorm, q_cfg, s_cfg)
-        return Pvnnnet
+    return VGGNet(depth, num_classes, batchnorm, q_cfg)
 
 
