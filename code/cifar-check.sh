@@ -23,6 +23,6 @@ python -u main.py				        \
 	${data_root}					\
 	${cfg_path}${cfg_file}.yaml		\
 	${output_path}					\
-    --gpu 7                         \
+    --gpu 3                         \
 	2>&1 | tee ${output_path}/${cfg_file}.log
 

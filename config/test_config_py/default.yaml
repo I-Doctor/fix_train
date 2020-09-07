@@ -1,6 +1,6 @@
 !!python/object/new:easydict.EasyDict
 dictitems:
-  DATA: &id007 !!python/object/new:easydict.EasyDict
+  DATA: &id013 !!python/object/new:easydict.EasyDict
     dictitems:
       batch_size: 128
       dataset: cifar10
@@ -34,7 +34,7 @@ dictitems:
         - false
         - !!binary |
           F0hQ/Bhz3z+VZYhjXdzeP/p+arx0k9w/
-      pixel_vars: &id004 !!python/object/apply:numpy.core.multiarray._reconstruct
+      pixel_stds: &id004 !!python/object/apply:numpy.core.multiarray._reconstruct
         args:
         - *id001
         - !!python/tuple
@@ -59,82 +59,131 @@ dictitems:
       flip: true
       num_works: 8
       pixel_means: *id003
-      pixel_vars: *id004
+      pixel_stds: *id004
       random_crop_pad: 4
       shuffle: true
       valid_batch_size: 128
       valid_num_works: 8
-  LOG: &id008 !!python/object/new:easydict.EasyDict
+  LOG: &id014 !!python/object/new:easydict.EasyDict
     dictitems:
-      activation_log: false
-      frequent: 1
-      gradient_log: false
-      sparse_rate_log: false
-      weight_log: false
+      frequent: 200
+      types: null
     state:
-      activation_log: false
-      frequent: 1
-      gradient_log: false
-      sparse_rate_log: false
-      weight_log: false
-  NETWORK: &id009 !!python/object/new:easydict.EasyDict
+      frequent: 200
+      types: null
+  NETWORK: &id015 !!python/object/new:easydict.EasyDict
     dictitems:
-      asparse: false
-      asparse_cfg: null
+      arch: resnet
       batchnorm: true
-      class_num: 10
       depth: 20
-      pruning: false
-      pruning_cfg: null
+      num_classes: 10
+      pretrained: false
+      q_cfg: &id010 !!python/object/new:easydict.EasyDict
+        dictitems:
+          bw: &id005
+          - 8
+          - 8
+          - 8
+          erange: &id006
+          - max
+          - max
+          - max
+          group: &id007
+          - false
+          - false
+          - false
+          hard: pow
+          level: &id008
+          - 0
+          - 0
+          - 0
+          linear: &id009
+          - null
+          - null
+          - null
+          qbn: false
+          qfirst: false
+          qlinear: false
+          signed: true
+          stochastic: false
+        state:
+          bw: *id005
+          erange: *id006
+          group: *id007
+          hard: pow
+          level: *id008
+          linear: *id009
+          qbn: false
+          qfirst: false
+          qlinear: false
+          signed: true
+          stochastic: false
       quantize: false
-      quantize_cfg: null
     state:
-      asparse: false
-      asparse_cfg: null
+      arch: resnet
       batchnorm: true
-      class_num: 10
       depth: 20
-      pruning: false
-      pruning_cfg: null
+      num_classes: 10
+      pretrained: false
+      q_cfg: *id010
       quantize: false
-      quantize_cfg: null
-  TRAIN: &id010 !!python/object/new:easydict.EasyDict
+  TRAIN: &id016 !!python/object/new:easydict.EasyDict
     dictitems:
-      decay_step: &id005
+      decay_step: &id011
       - 0
       - 81
       - 122
-      epoch: 170
-      learning_rate: &id006
+      epoch: 165
+      evaluate: false
+      learning_rate: &id012
       - 0.1
       - 0.001
       - 0.0001
-      momentum: 0.5
+      momentum: 0.9
       optimizer: SGDm
+      resume: null
       warmup: false
-      weight_decay: 0.0001
+      weight_decay: 0.0005
     state:
-      decay_step: *id005
-      epoch: 170
-      learning_rate: *id006
-      momentum: 0.5
+      decay_step: *id011
+      epoch: 165
+      evaluate: false
+      learning_rate: *id012
+      momentum: 0.9
       optimizer: SGDm
+      resume: null
       warmup: false
-      weight_decay: 0.0001
+      weight_decay: 0.0005
+  checkpoint_freq: 30
   cuda: true
   data_root: ''
+  dist_backend: nccl
+  dist_url: tcp://127.0.0.1:9000
+  distributed: false
+  float_epoch: 0
+  multiprocessing_distributed: true
   parallel: true
+  print_freq: 30
   random_seed: null
-  snapshot_frep: 30
+  rank: -1
   visible_device: '0'
+  world_size: -1
 state:
-  DATA: *id007
-  LOG: *id008
-  NETWORK: *id009
-  TRAIN: *id010
+  DATA: *id013
+  LOG: *id014
+  NETWORK: *id015
+  TRAIN: *id016
+  checkpoint_freq: 30
   cuda: true
   data_root: ''
+  dist_backend: nccl
+  dist_url: tcp://127.0.0.1:9000
+  distributed: false
+  float_epoch: 0
+  multiprocessing_distributed: true
   parallel: true
+  print_freq: 30
   random_seed: null
-  snapshot_frep: 30
+  rank: -1
   visible_device: '0'
+  world_size: -1

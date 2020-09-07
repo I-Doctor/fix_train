@@ -1,4 +1,3 @@
-
 import yaml
 import random
 import numpy as np
@@ -50,7 +49,19 @@ def create_default_cfg():
     config.NETWORK.pretrained = False
     # using quantization when traning."
     config.NETWORK.quantize = False
-    config.NETWORK.q_cfg = None
+    config.NETWORK.q_cfg = edict()
+    # configs
+    config.NETWORK.q_cfg.bw = [8,8,8]
+    config.NETWORK.q_cfg.linear = [None, None, None]
+    config.NETWORK.q_cfg.signed = True
+    config.NETWORK.q_cfg.stochastic = False
+    config.NETWORK.q_cfg.qfirst = False
+    config.NETWORK.q_cfg.qlinear = False
+    config.NETWORK.q_cfg.qbn = False
+    config.NETWORK.q_cfg.erange = ['max','max','max']
+    config.NETWORK.q_cfg.group = [False, False, False]
+    config.NETWORK.q_cfg.level = [0,0,0]
+    config.NETWORK.q_cfg.hard = 'pow'
 
     config.TRAIN = edict()
     # Resume or not"
@@ -68,7 +79,7 @@ def create_default_cfg():
     # using warmup at the beginning of training(just for log, lr&step can set above)."
     config.TRAIN.warmup = False
     # Decay factor of weight."
-    config.TRAIN.weight_decay = 1e-4
+    config.TRAIN.weight_decay = 5e-4
     # Momentum using in optimizers."
     config.TRAIN.momentum = 0.9
 
@@ -103,6 +114,7 @@ def update_cfg(config, config_file):
         exp_config = edict(yaml.load(f))
         for k, v in exp_config.items():
             if k in config:
+                # k is 'NETWORK', v is dict
                 if isinstance(v, dict):
                     if k == 'TRAIN':
                         if 'learning_rate' in v:
@@ -115,7 +127,15 @@ def update_cfg(config, config_file):
                         elif 'pixel_means' in v:
                             v['pixel_means'] = np.array(v['pixel_means'])
                     for vk, vv in v.items():
-                        config[k][vk] = vv
+                        # k.vk is 'NETWORK.q_cfg', vv is dict
+                        if isinstance(vv, dict):
+                            # k.vk.vvk is 'NETWORK.q_cfg.bw'
+                            for vvk, vvv in vv.items():
+                                config[k][vk][vvk] = vvv
+                        # vk is 'NETWORK.q_cfg', vv is dict
+                        else:
+                            config[k][vk] = vv
+                # k is 'float_epoch'
                 else:
                     config[k] = v
             else:
@@ -138,11 +158,16 @@ if __name__ == '__main__':
 
     cfg = create_default_cfg()
     print(cfg)
-    with open('../../configs/test_config_py/default.yaml', 'w') as outyaml:
+    with open('../../config/test_config_py/default.yaml', 'w') as outyaml:
         yaml.dump(cfg, outyaml, default_flow_style=False)
-    update_cfg(cfg, '../../configs/test_config_py/test.yaml')
-    print(cfg.TRAIN.lr)
-    print(cfg['TRAIN']['lr'])
+    #update_cfg(cfg, '../../config/test_config_py/test.yaml')
+    update_cfg(cfg, '../../config/cifar10/fix_cfg/cifar-check.yaml')
+    print(cfg.NETWORK.q_cfg.qlinear)
+    print(cfg.NETWORK.q_cfg.linear)
+    qcfg = cfg.NETWORK.q_cfg
+    print(qcfg["linear"][0])
+    print(cfg['TRAIN']['learning_rate'])
     print_cfg(cfg)
+    print(cfg)
 
 

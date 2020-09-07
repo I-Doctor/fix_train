@@ -1,8 +1,71 @@
-import numpy as np
-import matplotlib.pyplot as plt
-import h5py
-import os 
+######################################################################
+# (c) Copyright EFC of NICS, Tsinghua University. All rights reserved.
+#  Author: Kai Zhong
+#  Email : zhongk19@mails.tsinghua.edu.cn
+#  
+#  Create Date : 2020.08.26
+#  File Name   : plot_h5.py
+#  Description : read the inner data of training with h5 type
+#                and plot distribute figure 
+#  Dependencies: 
+######################################################################
+
+import os
 import sys
+import h5py
+import argparse
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+
+
+
+def main(argv):
+
+    print(argparse)
+    print(type(argparse))
+
+    parser = argparse.ArgumentParser()
+
+    # required arguments: 
+    parser.add_argument(
+        "plot_type",
+        help = "what type of figures are you going to plot.\n\
+                supported: dist log_dist cross_layer cross_epoch"
+    )
+    parser.add_argument(
+        "output_dir",
+        help = "the name of output dir to store the results."
+    )
+    parser.add_argument(
+        "--statistic_names",
+        nargs='+',
+        default=None,
+        help = "what statistic values are you going to plot or compare.\n        \
+                supported: mean_var max_min five"
+    )
+    parser.add_argument(
+        "--data_types",
+        help = "what types of data are you going to show.\n        \
+                example: all a w e g"
+    )
+    parser.add_argument(
+        "--file_range",
+        nargs='+',
+        help = "the date range of input file to read the results."
+    )
+
+    args = parser.parse_args()
+    #print(args.file_range)
+
+    if not os.path.exists(args.output_dir):
+        os.mkdir(args.output_dir)
+    elif not args.output_dir.endswith('test_out'):
+        exit('output dir exists')
+
+    dirlist = os.listdir('./')
+    print(dirlist)
+
 
 groupdim = 0
 dirname = 'log_quantize_check'

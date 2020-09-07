@@ -1,10 +1,10 @@
-
 #import pdb
 #import math
 #import warnings
 #import numpy as np
 #import torch
 # import pytorch modules
+import ipdb
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd.function import Function
@@ -48,21 +48,22 @@ class QConv2d(nn.Conv2d):
 
     def forward(self, input):
         
+        #ipdb.set_trace()
         #print("debug conv stochastic:",self.stochastic)
-        if self.training:
-            #print("debug self.train:",self.training)
-            Qinput  = self.quantize_a.apply(input, self.bw_a, self.linear_a, False,
-                      self.stochastic, self.erange[0], self.group[0], self.level_a, self.hard)
-        else:
-            #print("debug conv test sto false")
-            Qinput  = self.quantize_a.apply(input, self.bw_a, self.linear_a, False,
-                      False, self.erange[0], self.group[0], self.level_a, self.hard)
-        Qweight = self.quantize_w.apply(self.weight, self.bw_w, self.linear_w, 
-                  self.signed, self.stochastic, self.erange[1], self.group[1], self.level_w, self.hard) 
-        #print("debug qinput requires grad: ", Qinput.requires_grad)
-        #print("debug qweight requires grad: ", Qweight.requires_grad)
-
         if self.quantize:
+            if self.training:
+                #print("debug self.train:",self.training)
+                Qinput  = self.quantize_a.apply(input, self.bw_a, self.linear_a, False,
+                          self.stochastic, self.erange[0], self.group[0], self.level_a, self.hard)
+            else:
+                #print("debug conv test sto false")
+                Qinput  = self.quantize_a.apply(input, self.bw_a, self.linear_a, False,
+                          False, self.erange[0], self.group[0], self.level_a, self.hard)
+            Qweight = self.quantize_w.apply(self.weight, self.bw_w, self.linear_w, 
+                      self.signed, self.stochastic, self.erange[1], self.group[1], self.level_w, self.hard) 
+            #print("debug qinput requires grad: ", Qinput.requires_grad)
+            #print("debug qweight requires grad: ", Qweight.requires_grad)
+
             output = F.conv2d(Qinput, Qweight, self.bias, 
                                self.stride, self.padding, self.dilation, self.groups)
             if self.bw_g is not None:
@@ -73,6 +74,5 @@ class QConv2d(nn.Conv2d):
                               self.stride, self.padding, self.dilation, self.groups)
 
         return output
-
 
 
