@@ -6,9 +6,9 @@ NETWORK:
     quantize: true
     q_cfg:
         bw:
-            - 6
-            - 6
-            - 6
+            - 4
+            - 4
+            - 4
         stochastic: false
         qfirst: false
         group: 
@@ -16,10 +16,10 @@ NETWORK:
             - false
             - false
         level:
-            - 0
-            - 0
-            - 0
-        hard: pow
+            - 1
+            - 1
+            - 2
+        hard: pows
 TRAIN: 
     epoch: 181
     optimizer: SGDm

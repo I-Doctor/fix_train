@@ -45,57 +45,55 @@ class Hook_ctrl:
 
         def register_hook(module): 
             """
-            register_hook func is to insert hook
+            register_hook func is to insert hooks
             check module with names dict and create named hook to insert
             """
-            def create_hook(hook_name,hook_type):
+            def create_hook(hook_name, hook_type):
+                """
+                creat a hook function with name
+                """
+                def g_hook(grad):
+                    name = hook_name
+                    class_name = str(module.__class__).split('.')[-1].split("'")[0]
+                    # conv1 layer input0 is None, QConv2d len(input)==1 after quantize_enable
+                    # fc    backward input[0] is g_bias, [1] is Error_i, [2] is g_weight
+                    # conv  backward input[2] is g_bias, [0] is Error_i, [1] is g_weight
+                    # qconv backward input[0] is Error_i
+                    module_idx = len(self.store_list)
+                    m_key = module_idx + 1
+                    self.store_list[m_key] = OrderedDict()
+                    self.store_list[m_key]['name'] = name
+                    self.store_list[m_key]['class_name'] = class_name
+                    self.store_list[m_key]['raw_data'] = grad.data.cpu().numpy()
+                    self.store_list[m_key]['device'] = str(grad.device)
+
+
                 def new_hook(module, input, output):
+
                     name = hook_name
                     #print("debug,hook_name:",hook_name)
-                    '''
-                    for key, val in names.items():
-                        #print(val)
-                        #print(module)
-                        if val == module:
-                            name = key
-                    '''
-                    # <class 'torch.nn.modules.conv.Conv2d'>
+                    #for key, val in names.items():
+                    #    print(val)
+                    #    print(module)
+                    #    if val == module:
+                    #        name = key
+                    #<class 'torch.nn.modules.conv.Conv2d'>
                     class_name = str(module.__class__).split('.')[-1].split("'")[0]
                     #print('debug class_name in hook',class_name)
-                    if hook_type == 'w':
-                        if hasattr(module,'weight'):
-                            module_idx = len(self.store_list)
-                            m_key = module_idx + 1
-                            self.store_list[m_key] = OrderedDict()
-                            self.store_list[m_key]['name'] = name
-                            self.store_list[m_key]['class_name'] = class_name
-                            self.store_list[m_key]['device'] = str(module.weight.device)
-                            self.store_list[m_key]['raw_data'] = module.weight.data.cpu().numpy()
-                            if module.bias is not None:
-                                self.store_list[m_key]['bias'] = module.bias.data.cpu().numpy()
-                            else:
-                                self.store_list[m_key]['bias'] = None
-                    elif hook_type == 'g' and input[0] is not None \
-                            and hasattr(module,'weight') \
-                            and len(input)>1:
-                        # conv1 layer input0 is None, QConv2d len(input)==1 after quantize_enable
-                        #print('debug g input module', module)
-                        #print('debug len',len(input))
-                        #for temp in range(len(input)-1):
-                        #    print('debug size',input[temp].size()) 
+
+                    if hook_type == 'w' and hasattr(module,'weight'):
                         module_idx = len(self.store_list)
                         m_key = module_idx + 1
                         self.store_list[m_key] = OrderedDict()
                         self.store_list[m_key]['name'] = name
                         self.store_list[m_key]['class_name'] = class_name
-                        if len(input[0]) == 1:
-                            self.store_list[m_key]['raw_data'] = input[2].data.cpu().numpy()
-                            self.store_list[m_key]['device'] = str(input[2].device)
+                        self.store_list[m_key]['device'] = str(module.weight.device)
+                        self.store_list[m_key]['raw_data'] = module.weight.data.cpu().numpy()
+                        if module.bias is not None:
+                            self.store_list[m_key]['bias'] = module.bias.data.cpu().numpy()
                         else:
-                            self.store_list[m_key]['raw_data'] = input[1].data.cpu().numpy()
-                            self.store_list[m_key]['device'] = str(input[1].device)
-                        # fc   backward input[0] is g_bias, [1] is Error_i, [2] is g_weight
-                        # conv backward input[2] is g_bias, [0] is Error_i, [1] is g_weight
+                            self.store_list[m_key]['bias'] = None
+
                     elif hook_type == 'a':
                         module_idx = len(self.store_list)
                         m_key = module_idx + 1
@@ -111,6 +109,7 @@ class Hook_ctrl:
                         else:
                             self.store_list[m_key]['raw_data'] = input[1].data.cpu().numpy()
                             self.store_list[m_key]['device'] = str(input[1].device)
+
                     elif hook_type == 'e':
                         module_idx = len(self.store_list)
                         m_key = module_idx + 1
@@ -123,10 +122,39 @@ class Hook_ctrl:
                         self.store_list[m_key]['raw_data'] = output[0].data.cpu().numpy()
                         # backward output is tuple, output[0] is a tensor
                         self.store_list[m_key]['device'] = str(output[0].device)
+
+                    elif hook_type == 'g' and hasattr(module,'weight'):
+                        #and input[0] is not None and len(input)>1:
+                        # conv1 layer input0 is None, QConv2d len(input)==1 after quantize_enable
+                        # fc    backward input[0] is g_bias, [1] is Error_i, [2] is g_weight
+                        # conv  backward input[2] is g_bias, [0] is Error_i, [1] is g_weight
+                        # qconv backward input[0] is Error_i 
+                        # !!! so we can't use this hook to save g when quantization
+
+                        #print('debug g name ', name)
+                        #print('debug g module ', module)
+                        #print('debug len ',len(input))
+                        #for temp in range(len(input)):
+                        #    if input[temp] is not None:
+                        #        print('debug size ',temp,' ',input[temp].size()) 
+                        module_idx = len(self.store_list)
+                        m_key = module_idx + 1
+                        self.store_list[m_key] = OrderedDict()
+                        self.store_list[m_key]['name'] = name
+                        self.store_list[m_key]['class_name'] = class_name
+                        if isinstance(module, nn.Linear):
+                            self.store_list[m_key]['raw_data'] = input[2].data.cpu().numpy()
+                            self.store_list[m_key]['device'] = str(input[2].device)
+                        else:
+                            self.store_list[m_key]['raw_data'] = input[1].data.cpu().numpy()
+                            self.store_list[m_key]['device'] = str(input[1].device)
                     else:
                         pass
 
-                return new_hook
+                if hook_type == 'g':
+                    return g_hook
+                else:
+                    return new_hook
 
             if not isinstance(module, nn.Sequential) and \
                     not isinstance(module, nn.ModuleList) and \
@@ -138,7 +166,8 @@ class Hook_ctrl:
                     if self.vtype == 'a':
                         self.hooks.append(module.register_forward_hook(create_hook(hook_name,self.vtype)))
                     elif self.vtype == 'g':
-                        self.hooks.append(module.register_backward_hook(create_hook(hook_name,self.vtype)))
+                        if hasattr(module,'weight'):
+                            self.hooks.append(module.weight.register_hook(create_hook(hook_name,self.vtype)))
                     elif self.vtype == 'e':
                         self.hooks.append(module.register_backward_hook(create_hook(hook_name,self.vtype)))
                     elif self.vtype == 'w':
@@ -361,3 +390,6 @@ class Hook_ctrl:
             file_list  = ['w_max', 'w_p75', 'w_p50', 'w_p25', 'w_min']
             line_num  = len(file_list)
             LinePlot(line_num, file_path, file_list, line_index, 'cross_layer_w'+"_"+str(epoch))
+
+
+

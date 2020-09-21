@@ -66,7 +66,8 @@ def add_line(configs, count, wordlist, pos):
                     # append element until next label
                     for j in range(i+2, len(wordlist)):
                         if wordlist[j].endswith("':"): break
-                        else: data_element += ','+clean(wordlist[j])
+                        #else: data_element += ','+clean(wordlist[j])
+                        else: data_element += clean(wordlist[j])
                     if check_column(configs, column_label):
                         configs.loc[count,(column_label)] = data_element
                     else:
@@ -79,7 +80,8 @@ def add_line(configs, count, wordlist, pos):
             data_element = clean(wordlist[4])
             # append element until the end of this line
             for i in range(5, len(wordlist)):
-                data_element += ','+clean(wordlist[i])
+                #data_element += ','+clean(wordlist[i])
+                data_element += clean(wordlist[i])
             if check_column(configs, column_label):
                 configs.loc[count,(column_label)] = data_element
             else:
@@ -162,10 +164,44 @@ def process_file(filepath, configs, results, count):
                 
 
 
+def plot_file(filename, output_path, config_names, count, dist_type):
+    splitname = filename.split('_')
+    data_type = splitname[-2]
+    epoch = splitname[-1]
+    f = h5py.File(filename,'r')
+    keys = f.keys()
+    for layer_name in keys:
+        layer_data = f[layer_name][:]
+        layer_name = layer_name[0:-8] if layer_name[-1]=='b' else layer_name[0:-6]
+        print('  ',layer_name)
+        shape = layer_data.shape
+        print('    shape',shape)
+        print('    range',layer_data.min(), layer_data.max())
+
+        data_flatten = layer_data.flatten()
+        print('    data numbers:',len(data_flatten))
+        if dist_type.startswith('log'):
+            data_flatten = np.where(data_flatten<1e-12,1e-12,data_flatten)
+            data_flatten = np.log2(np.abs(data_flatten))
+            if np.min(data_flatten) < -100:
+                print(np.min(data_flatten))
+        #plt.hist(data_flatten, bins = 100, range = layer_data.max()-layer_data.min())#density = True
+        if data_type == 'e':
+            if np.min(data_flatten) < -100:
+                print('e', np.min(data_flatten))
+            plt.hist(data_flatten, bins = 100, log=True)
+        else:
+            plt.hist(data_flatten, bins = 100)
+        hist_path = os.path.join(output_path, (config_names[count]+"_"+layer_name+"_"+data_type+"_"+str(epoch)+".png"))
+        plt.savefig(hist_path)
+        plt.clf()
+
+
+
 def main(argv):
 
-    print(argparse)
-    print(type(argparse))
+    #print(argparse)
+    #print(type(argparse))
 
     parser = argparse.ArgumentParser()
 
@@ -173,7 +209,7 @@ def main(argv):
     parser.add_argument(
         "type",
         help = "what type of mission are you going to do.\n\
-                supported: compare loss acc data_range"
+                supported: compare loss acc dist log_dist"
     )
     parser.add_argument(
         "output_dir",
@@ -182,7 +218,14 @@ def main(argv):
     parser.add_argument(
         "--results_name",
         help = "what results are you going to plot or compare.\n        \
+                Only work for compare loss acc.               \n        \
                 supported: best_acc test_acc train_acc test_loss train_loss"
+    )
+    parser.add_argument(
+        "--data_types",
+        help = "what types of data are you going to plot dist.\n        \
+                Only work for dist and log_dist.              \n        \
+                supported: all w a g e"
     )
     parser.add_argument(
         "--config_name",
@@ -316,6 +359,38 @@ def main(argv):
             fig.show()
             fig.savefig(os.path.join(args.output_dir, args.type+'_'+titles[i]+'.png'))
 
+    elif args.type.endswith('dist'):
+        config_names = configs.iloc[:,0].str.cat(configs.iloc[:,1:-1], sep='-', na_rep='*')
+        print(config_names)
+        count = 0
+        for dirname in dirlist:
+            if dirname.startswith('log_quantize'):
+                date = dirname[13:21]
+                #print(date)
+                if date >= args.file_range[0] and date <= args.file_range[1]:
+                    #print('date ok')
+                    filelist = os.listdir(dirname)
+                    #print(filelist)
+                    for filename in filelist:
+                        if filename.endswith('.h5'):
+                            filepath = os.path.join(dirname,filename)
+                            print(filepath)
+                            if not os.path.exists(filepath):
+                                print(filepath)
+                                exit("wrong filename")
+                            if args.data_types == 'all':
+                                plot_file(filepath, args.output_dir, config_names, count, args.type)
+                            elif args.data_types in ['a','w','e','g']:
+                                if filename[11] == args.data_types: 
+                                    #print('zk debug: find one', args.data_types)
+                                    plot_file(filepath, args.output_dir, config_names, count, args.type)
+                            else:
+                                exit("wrong type")
+                    count += 1
+
+    elif args.type == 'curve':
+        config_names = configs.iloc[:,0].str.cat(configs.iloc[:,1:-1], sep='-', na_rep='*')
+        print(config_names)
     else:
         exit('wrong type arguement')
 

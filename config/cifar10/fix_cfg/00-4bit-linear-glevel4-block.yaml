@@ -6,20 +6,20 @@ NETWORK:
     quantize: true
     q_cfg:
         bw:
-            - 8
-            - 8
-            - 8
+            - 2
+            - 2
+            - 2
         stochastic: true
         qfirst: false
         group:
-            - false
-            - false
-            - false
+            - nc
+            - n
+            - nc
         level:
-            - 0
-            - 0
-            - 0
-        hard: pow
+            - 1
+            - 1
+            - 1
+        hard: pows
 TRAIN: 
     epoch: 181
     learning_rate: 

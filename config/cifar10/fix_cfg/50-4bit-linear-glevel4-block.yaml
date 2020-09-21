@@ -18,9 +18,9 @@ NETWORK:
             - n
             - nc
         level:
-            - 0
-            - 0
-            - 0
+            - 1
+            - 1
+            - 1
         hard: pows
 TRAIN: 
     epoch: 181
