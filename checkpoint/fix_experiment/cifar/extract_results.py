@@ -183,16 +183,23 @@ def plot_file(filename, output_path, config_names, count, dist_type):
         if dist_type.startswith('log'):
             data_flatten = np.where(data_flatten<1e-12,1e-12,data_flatten)
             data_flatten = np.log2(np.abs(data_flatten))
-            if np.min(data_flatten) < -100:
-                print(np.min(data_flatten))
-        #plt.hist(data_flatten, bins = 100, range = layer_data.max()-layer_data.min())#density = True
-        if data_type == 'e':
-            if np.min(data_flatten) < -100:
-                print('e', np.min(data_flatten))
-            plt.hist(data_flatten, bins = 100, log=True)
+            _range = (np.max(data_flatten.max()-30,40),data_flatten.max())
+            if data_type == 'e':
+                plt.hist(data_flatten, bins = 100, range=_range, log=True)
+            else:
+                plt.hist(data_flatten, bins = 100, range=_range)
         else:
-            plt.hist(data_flatten, bins = 100)
-        hist_path = os.path.join(output_path, (config_names[count]+"_"+layer_name+"_"+data_type+"_"+str(epoch)+".png"))
+            if data_flatten.min() == 0:
+                maxx = data_flatten.max()
+                maxr = np.max(maxx, 1e-12)
+                _range = (1e-12, maxr)
+                print(_range)
+                plt.hist(data_flatten, range=_range, bins = 100)
+            if data_type == 'e':
+                plt.hist(data_flatten, bins = 100, log=True)
+            else:
+                plt.hist(data_flatten, bins = 100)
+        hist_path = os.path.join(output_path, (dist_type+config_names[count]+"_"+layer_name+"_"+data_type+"_"+str(epoch)+".png"))
         plt.savefig(hist_path)
         plt.clf()
 
