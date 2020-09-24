@@ -251,6 +251,7 @@ def main_worker(gpu, ngpus_per_node, cfg):
         model = model.cuda(cfg.gpu)
     else:
         # DataParallel will divide and allocate batch_size to all available GPUs
+        print('DataParallel now.')
         if net_cfg.arch.startswith('alexnet') or net_cfg.arch.startswith('vgg'):
             model.features = torch.nn.DataParallel(model.features)
             model.cuda()
@@ -507,12 +508,12 @@ def train(train_loader, model, criterion, optimizer, epoch, args, hooks=None):
             for h in hooks:
                 h.remove()
 
-        # measure data loading time
-        data_time.update(time.time() - end)
-        
         if args.gpu is not None:
             inputs = inputs.cuda(args.gpu, non_blocking=True)
         target = target.cuda(args.gpu, non_blocking=True)
+
+        # measure data loading time
+        data_time.update(time.time() - end)
         
         # compute output
         output = model(inputs)

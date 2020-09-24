@@ -8,9 +8,9 @@ NETWORK:
     quantize: true
     q_cfg:
         bw:
-            - 4
-            - 5
-            - 5
+            - 6
+            - 6
+            - 6
         stochastic: false
         qfirst: false
         group: 
@@ -23,7 +23,7 @@ NETWORK:
             - 1
         hard: pows
 TRAIN: 
-    epoch: 85 
+    epoch: 5 
     optimizer: SGDm
     resume: null
     evaluate: false
@@ -31,12 +31,10 @@ TRAIN:
         - 0.1
         - 0.01
         - 0.001
-        - 0.0005
     decay_step:
         - 0
-        - 30
-        - 60
-        - 80
+        - 2
+        - 4
     warmup: false
     weight_decay: 0.0005
     momentum: 0.9
@@ -58,6 +56,9 @@ DATA:
     valid_batch_size: 256
     valid_num_works: 8
 LOG:
-    frequent: 28
+    frequent: 3
     types:
+        - a
+        - w
         - g
+        - e
