@@ -5,22 +5,14 @@ NETWORK:
     depth: 18
     num_classes: 1000
     batchnorm: true
-    quantize: false
+    quantize: true
     q_cfg:
         bw:
-            - 6
-            - 7
-            - 7
-        linear: 
-            - null
-            - null
-            - null
-        signed: true
-        stochastic: true
-        erange: 
-            - max
-            - max
-            - max
+            - 4
+            - 5
+            - 5
+        stochastic: false
+        qfirst: false
         group: 
             - nc
             - n
@@ -28,7 +20,7 @@ NETWORK:
         level:
             - 1
             - 1
-            - 2
+            - 1
         hard: pows
 TRAIN: 
     epoch: 85 
@@ -42,11 +34,11 @@ TRAIN:
         - 0.0005
     decay_step:
         - 0
-        - 28
-        - 56
+        - 30
+        - 60
         - 80
     warmup: false
-    weight_decay: 0.0001
+    weight_decay: 0.0005
     momentum: 0.9
 DATA:
     dataset: ILSVRC2012_img
@@ -66,9 +58,6 @@ DATA:
     valid_batch_size: 256
     valid_num_works: 8
 LOG:
-    frequent: 200
+    frequent: 28
     types:
-        - a
-        - w
         - g
-        - e
