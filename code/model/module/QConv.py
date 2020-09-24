@@ -1,6 +1,4 @@
 #import pdb
-#import math
-#import warnings
 #import numpy as np
 #import torch
 # import pytorch modules
@@ -20,7 +18,6 @@ class QConv2d(nn.Conv2d):
     """ quantized conv2d
         parameters: same as Conv2d but adding q_cfg as quantize config
     """
-
     def __init__(self, in_planes, out_planes, kernel_size, stride=1, padding=0,
                  dilation=1, groups=1, bias=True, q_cfg=None):
         super(QConv2d, self).__init__(in_planes, out_planes, kernel_size, stride, 
@@ -47,31 +44,58 @@ class QConv2d(nn.Conv2d):
         self.quantize_g = Quantize_G
 
     def forward(self, input):
-        
         #ipdb.set_trace()
         #print("debug conv stochastic:",self.stochastic)
         if self.quantize:
             if self.training:
                 #print("debug self.train:",self.training)
-                Qinput  = self.quantize_a.apply(input, self.bw_a, self.linear_a, False,
-                          self.stochastic, self.erange[0], self.group[0], self.level_a, self.hard)
+                Qinput  = self.quantize_a.apply(input,
+                                                self.bw_a, 
+                                                self.linear_a, 
+                                                False,
+                                                False, 
+                                                self.erange[0],
+                                                self.group[0], 
+                                                self.level_a, 
+                                                self.hard)
             else:
                 #print("debug conv test sto false")
-                Qinput  = self.quantize_a.apply(input, self.bw_a, self.linear_a, False,
-                          False, self.erange[0], self.group[0], self.level_a, self.hard)
-            Qweight = self.quantize_w.apply(self.weight, self.bw_w, self.linear_w, 
-                      self.signed, self.stochastic, self.erange[1], self.group[1], self.level_w, self.hard) 
+                Qinput  = self.quantize_a.apply(input, 
+                                                self.bw_a, 
+                                                self.linear_a, 
+                                                False,
+                                                False, 
+                                                self.erange[0], 
+                                                self.group[0], 
+                                                self.level_a, 
+                                                self.hard)
+            Qweight = self.quantize_w.apply(self.weight, 
+                                            self.bw_w, 
+                                            self.linear_w, 
+                                            self.signed, 
+                                            False, 
+                                            self.erange[1], 
+                                            self.group[1], 
+                                            self.level_w, 
+                                            self.hard) 
             #print("debug qinput requires grad: ", Qinput.requires_grad)
             #print("debug qweight requires grad: ", Qweight.requires_grad)
 
-            output = F.conv2d(Qinput, Qweight, self.bias, 
+            output = F.conv2d( Qinput, Qweight, self.bias, 
                                self.stride, self.padding, self.dilation, self.groups)
-            if self.bw_g is not None:
-                output = self.quantize_g.apply(output, self.bw_g, self.linear_g, 
-                         self.signed, True, self.erange[2], self.group[2],self.level_g, self.hard)
+            if self.bw_g <30:
+                output = self.quantize_g.apply( output, 
+                                                self.bw_g, 
+                                                self.linear_g, 
+                                                self.signed, 
+                                                self.stochastic, 
+                                                self.erange[2], 
+                                                self.group[2],
+                                                self.level_g, 
+                                                self.hard)
         else:
-            output = F.conv2d(input, self.weight, self.bias, 
-                              self.stride, self.padding, self.dilation, self.groups)
+            output = F.conv2d( input, self.weight, self.bias, 
+                               self.stride, self.padding, self.dilation, self.groups)
 
         return output
 

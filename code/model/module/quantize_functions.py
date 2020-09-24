@@ -612,7 +612,7 @@ class Quantize_G(Function):
             ratio = 4/half
             thres = half
             output.mul_(ratio).sigmoid_().mul_(2*thres).sub_(thres)
-            if stochastic:
+            if ctx.stochastic:
                 noise = output.new(output.shape).uniform_(-0.5, 0.5)
                 output.add_(noise)
             output.clamp_(qmin,qmax).round_()
@@ -630,7 +630,7 @@ class Quantize_G(Function):
             ratio = 4/half
             thres = half
             output.mul_(ratio).sigmoid_().mul_(2*thres).sub_(thres)
-            if stochastic:
+            if ctx.stochastic:
                 noise = output.new(output.shape).uniform_(-0.5, 0.5)
                 output.add_(noise)
             output.clamp_(qmin,qmax).round_()
