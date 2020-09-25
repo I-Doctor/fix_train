@@ -6,19 +6,19 @@ NETWORK:
     quantize: true
     q_cfg:
         bw:
-            - 6
-            - 6
-            - 6
-        stochastic: false
+            - 4
+            - 4
+            - 4
+        stochastic: true
         qfirst: false
         group:
             - false
             - false
             - false
         level:
-            - 0
-            - 0
-            - 0
+            - 1
+            - 1
+            - 1
         hard: pows
 TRAIN: 
     epoch: 181

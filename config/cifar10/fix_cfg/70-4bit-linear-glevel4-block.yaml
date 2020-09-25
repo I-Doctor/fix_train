@@ -6,10 +6,10 @@ NETWORK:
     quantize: true
     q_cfg:
         bw:
+            - 1
             - 2
             - 2
-            - 2
-        stochastic: false
+        stochastic: truee
         qfirst: false
         group: 
             - nc

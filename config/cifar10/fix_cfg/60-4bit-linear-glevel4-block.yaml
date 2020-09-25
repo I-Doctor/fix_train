@@ -9,8 +9,8 @@ NETWORK:
             - 3
             - 3
             - 3
-        stochastic: false
-        qfirst: false
+        stochastic: true
+        qfirst: true
         group: 
             - nc
             - n

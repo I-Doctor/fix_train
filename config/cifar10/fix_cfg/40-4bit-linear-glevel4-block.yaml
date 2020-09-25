@@ -9,7 +9,7 @@ NETWORK:
             - 4
             - 4
             - 4
-        stochastic: false
+        stochastic: true
         qfirst: false
         group: 
             - nc
@@ -19,7 +19,7 @@ NETWORK:
             - 0
             - 0
             - 0
-        hard: pows
+        hard: pow2
 TRAIN: 
     epoch: 181
     learning_rate: 

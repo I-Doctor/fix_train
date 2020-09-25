@@ -2,8 +2,8 @@ data_root: /home/eva_share/datasets/
 float_epoch: 1
 print_freq: 50
 NETWORK: 
-    batchnorm: true
-    quantize: true
+    batchnorm: false
+    quantize: false
     q_cfg:
         bw:
             - 4
