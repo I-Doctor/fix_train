@@ -477,13 +477,14 @@ def main_worker(gpu, ngpus_per_node, cfg):
 
     # validate(imgnet) or report(cifar10) at the end of training
     if data_cfg.dataset=='ILSVRC2012_img':
-        acc1 = validate(val_loader, model, criterion, cfg, True)
-        acc1 = validate(val_loader, model, criterion, cfg, True)
-        acc1 = validate(val_loader, model, criterion, cfg, True)
         acc1 = validate(val_loader, model, criterion, cfg)
+        acc1 = validate(val_loader, model, criterion, cfg)
+        acc1 = validate(val_loader, model, criterion, cfg, True)
+        acc1 = validate(val_loader, model, criterion, cfg, True)
         acc1 = validate(val_loader, model, criterion, cfg)
         pass
     else:
+        finalreport(val_loader, model, net_cfg.num_classes, cfg.cuda)
         finalreport(val_loader, model, net_cfg.num_classes, cfg.cuda)
     print('BEST RESULT: %.3f%% at EPOCH: %d' % (best_acc1, best_epo1))
 
