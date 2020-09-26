@@ -2,24 +2,25 @@ data_root: /home/eva_share/datasets/
 float_epoch: 1
 print_freq: 50
 NETWORK: 
-    batchnorm: false
-    quantize: false
+    batchnorm: true
+    quantize: true
     q_cfg:
         bw:
-            - 4
-            - 4
-            - 4
-        stochastic: false
+            - 2
+            - 2
+            - 2
+        level:
+            - 2
+            - 2
+            - 2
+        stochastic: true
         qfirst: false
         group: 
-            - false
-            - false
-            - false
-        level:
-            - 0
-            - 0
-            - 0
-        hard: pows
+            - nc
+            - n
+            - nc
+        g_scale_type: simple 
+        value_type: progess
 TRAIN: 
     epoch: 181
     learning_rate: 

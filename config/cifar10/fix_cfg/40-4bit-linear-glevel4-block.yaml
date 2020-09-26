@@ -6,9 +6,9 @@ NETWORK:
     quantize: true
     q_cfg:
         bw:
-            - 4
-            - 4
-            - 4
+            - 1
+            - 1
+            - 1
         stochastic: true
         qfirst: false
         group: 
@@ -16,10 +16,11 @@ NETWORK:
             - n
             - nc
         level:
-            - 0
-            - 0
-            - 0
-        hard: pow2
+            - 2
+            - 2
+            - 2
+        g_scale_type: simple
+        value_type: sudden
 TRAIN: 
     epoch: 181
     learning_rate: 

@@ -7,9 +7,9 @@ NETWORK:
     q_cfg:
         bw:
             - 1
+            - 1
             - 2
-            - 2
-        stochastic: truee
+        stochastic: true
         qfirst: false
         group: 
             - nc

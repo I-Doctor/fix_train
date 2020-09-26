@@ -10,6 +10,18 @@ NETWORK:
             - 3
             - 3
             - 3
+        level:
+            - 2
+            - 2
+            - 2
+        stochastic: true
+        qfirst: false
+        group:
+            - nc
+            - n
+            - nc
+        g_scale_type: simple
+        value_type: sudden
 TRAIN: 
     epoch: 6
     optimizer: SGDm

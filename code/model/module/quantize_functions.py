@@ -8,7 +8,120 @@ import torch
 #import torch.nn.functional as F
 from torch.autograd.function import Function
 
-__all__ = ['Quantize_W', 'Quantize_A', 'Quantize_G']
+__all__ = ['Quantize_W', 'Quantize_A', 'Quantize_E']
+
+
+
+def min_max(x, group):
+    ''' calculate min max or mins maxs for group-wise with input tensor
+    '''
+    if group != False:          
+        if len(x.shape) == 4:
+            B,C,H,W = x.shape
+        else:
+            B,C,X = x.shape
+            #raise ValueError('appear fc')
+        if group == 'nc':
+            x = x.view(B, C, -1)
+            max_value = x.max(2)[0]
+            min_value = x.min(2)[0]
+            assert len(max_value.shape) == 2
+            max_value.unsqueeze_(2).unsqueeze_(2)
+            min_value.unsqueeze_(2).unsqueeze_(2)
+        else:
+            if group == 'n':
+                x = x.view(B, C, -1)
+            elif group == 'c':
+                x = x.transpose(0,1).contiguous().view(C, B, -1)    
+            else:
+                raise ValueError('wrong group config')            
+            max_value = x.max(-1)[0].max(-1)[0]
+            min_value = x.min(-1)[0].min(-1)[0]
+            assert len(max_value.shape) == 1        
+            if group == 'c':
+                max_value.unsqueeze_(1).unsqueeze_(1).unsqueeze_(0)
+                min_value.unsqueeze_(1).unsqueeze_(1).unsqueeze_(0)
+            else:
+                max_value.unsqueeze_(1).unsqueeze_(1).unsqueeze_(1)
+                min_value.unsqueeze_(1).unsqueeze_(1).unsqueeze_(1)
+    else:
+        max_value = x.max()  
+        min_value = x.min() 
+    max_value.clamp_(1e-10,1e10)        #non-zero
+    
+    return max_value, min_value
+
+
+
+def simulate_quantize(a, max_value, min_value, mbits, ebits, signed, stochastic, group, g_scale_type, value_type):
+    ''' simulate the quantization with computation
+    '''
+    # get scale_t
+    abs_max   = torch.max(max_value, -min_value)         
+    scale_t   = abs_max.max()
+    scale_g   = 0
+
+    # get scale_g
+    if group != False:
+        real_scale_g = abs_max/scale_t
+        exp_g = real_scale_g.log2().ceil_()
+        simple_scale_g = 2.**exp_g
+        scale_g = simple_scale_g
+        if g_scale_type == 'complex':
+            man_g = real_scale_g.div(simple_scale_g)
+            man_g.mul_(4).ceil_().div_(4)
+            complex_scale_g = man_g.mul(simple_scale_g)
+            scale_g = complex_scale_g
+    else:
+        scale_g = 1.
+    
+    # divided by scales
+    a.div_(scale_t).div_(scale_g)
+    
+    # quantize man_e and exp_e
+    qmax = 2.**(mbits-1) if signed else 2.**(mbits)
+    sign_e = torch.sign(a)         
+    a.abs_().clamp_(1e-12,100)     # clamp zero values 
+    exp_e  = a.log2().floor_()     # get exponent
+    man_e  = 0
+    mask   = 0
+    # sudden underflow, normal value with min exp_e
+    if value_type == 'sudden':
+        exp_e.clamp_(-(2.**ebits),10)  # quantize exp_e by clamp small value
+        man_e  = a.div(2.**exp_e)
+        man_e  = man_e.sub_(1).mul_(qmax)
+    # progess underflow, unormal value with min exp_e + 1
+    elif value_type == 'progess':
+        exp_e.clamp_(-(2.**ebits)+1,10)  # quantize exp_e by clamp small value
+        man_e  = a.div(2.**exp_e)
+        # quantize mantissa of values greater than 1 by sub 1
+        # quantize significant of values less than 1 and no sub 1
+        mask   = man_e.gt(1)
+        man_e  = torch.where(mask, man_e.sub(1), man_e)
+        man_e.mul_(qmax)
+    else:
+        raise ValueError('wrong value type config')
+    # quantize qmax scaled mantissa
+    if stochastic:
+        noise = man_e.new(man_e.shape).uniform_(-0.5, 0.5)
+        man_e.add_(noise)
+    man_e.round_()
+    zero_e = man_e.gt(-0.5).float()     # underflow
+    man_e.clamp_(0, qmax)
+    # rescale qmax and add 1 back
+    if value_type == 'sudden':
+        man_e.div_(qmax).add_(1)
+    elif value_type == 'progess':
+        man_e.div_(qmax)
+        man_e = torch.where(mask, man_e.add(1), man_e)
+    else:  
+        raise ValueError('wrong value type config')
+    # dequantize to real float number
+    a = zero_e.mul(sign_e.mul_(man_e).mul_(2.**(exp_e)))
+    # rescale by scales
+    a.mul_(scale_g).mul_(scale_t)
+    
+    return a, scale_t, scale_g
 
 
 
@@ -16,190 +129,31 @@ class Quantize_W(Function):
     ''' Function which quantizes w directly during both forward and backward
         Call it by Quantize_W.apply(weight, ...)
     '''
-
     @staticmethod
-    def forward(ctx, input, num_bits=8, linear=None, signed=True, stochastic=True, 
-                erange='max', group=False, level=1, hard='real'):
+    def forward(ctx, input, mbits=4, ebits=2, signed=False, stochastic=False, 
+                group='n', g_scale_type='simple', value_type='sudden'):
         ''' Forward function
                 input           : unquantized weight       
-                num_bits        : bw of quantized weight 
-                linear          : None for linear
-                signed          : signed quantize or not    
+                mbits           : mantissa bw of quantized weight
+                ebits           : exponent bw of quantized weight
+                signed          : signed quantize means no extra sign bit    
                 stochastic      : add noise when quantize or not 
-                group           : inplace 
-                level           : additional bits for unusual values
+                group           : how to group 
         '''
-        output = input.clone()
-
-        if group != False:
-            if len(input.shape) == 4:
-                B,C,H,W = input.shape
-                a = input.clone()
-            else:
-                B,C,H,W = (0,0,0,0)
-                raise ValueError('appear fc')
-
-            if group == 'nc':
-                warnings.warn('You are using nc group for weight')
-                a = a.view(B, C, H*W)
-                if erange == 'max':
-                    max_value = a.max(2)[0]
-                    min_value = a.min(2)[0]
-                elif erange == 'mean':
-                    raise ValueError('wrong nc group work with mean erange')
-                elif erange == 'std' :
-                    raise ValueError('wrong nc group work with std erange')
-                else:
-                    raise ValueError('wrong erange config')
-                assert len(max_value.shape) == 2
-                max_value.unsqueeze_(2).unsqueeze_(2)
-                min_value.unsqueeze_(2).unsqueeze_(2)
-            else:
-                #print('debug w a',a.shape)
-                if group == 'n':
-                    a = a.view(B, C, H*W)
-                elif group == 'c':
-                    a = a.transpose(0,1).contiguous().view(C, B, H*W)
-                elif group == 'ct':
-                    a = a.transpose(0,1).contiguous().view(C//2, B*2, H*W)
-                elif group == 'nt':
-                    a = a.view(B//2, C*2, H*W)
-                else:
-                    raise ValueError('wrong group config')
-
-                #print('debug w a.view',a.shape)
-                if erange == 'max':
-                    max_value = a.max(-1)[0].max(-1)[0]
-                    min_value = a.min(-1)[0].min(-1)[0]
-                elif erange == 'mean':
-                    max_value = a.max(-1)[0].mean(-1)
-                    min_value = a.min(-1)[0].mean(-1)
-                elif erange == 'std':
-                    mean_value = a.mean((1,2))
-                    std_value = a.std((1,2))
-                    max_value = mean_value + 3*std_value
-                    min_value = mean_value - 3*std_value
-                else:
-                    raise ValueError('wrong erange config')
-                #print('debug w',max_value.shape)
-                assert len(max_value.shape) == 1
-                if group == 'c':
-                    max_value.unsqueeze_(1).unsqueeze_(1).unsqueeze_(0)
-                    min_value.unsqueeze_(1).unsqueeze_(1).unsqueeze_(0)
-                elif group == 'nt':
-                    max_value = max_value.repeat(1,2).view(B,1,1,1)
-                    min_value = min_value.repeat(1,2).view(B,1,1,1)
-                elif group == 'ct':
-                    max_value = max_value.repeat(1,2).view(1,C,1,1)
-                    min_value = min_value.repeat(1,2).view(1,C,1,1)
-                else:
-                    max_value.unsqueeze_(1).unsqueeze_(1).unsqueeze_(1)
-                    min_value.unsqueeze_(1).unsqueeze_(1).unsqueeze_(1)
-
-        elif group == False:       # group == False
-            if erange == 'max':
-                max_value = input.max()  
-                min_value = input.min() 
-            elif erange == 'mean':
-                max_value = input.max(-1)[0].max(-1)[0].max(-1)[0].mean()
-                min_value = input.min(-1)[0].min(-1)[0].min(-1)[0].mean()
-            elif erange == 'std':
-                mean_value = input.mean()
-                std_value = input.std()
-                max_value = mean_value + 3*std_value
-                min_value = mean_value - 3*std_value
-            else:
-                raise ValueError('wrong erange config')
-        else:
-            raise ValueError('wrong group config')
-
-
-        # TODO: re-add true zero computation
-        # using GEMMLOWP quantize, shift and scale real input to qmin~qmax
-        qmin = -(2.**(num_bits - 1)) if signed else 0.
-        qmax = qmin + 2.**(num_bits)
-        qrange = qmax-qmin
-        max_value = torch.where(max_value.lt(0.0001), max_value+0.0001, max_value) #non-zero
-        if hard == 'pow':   # ceil round to pow of 2
-            max_value = torch.pow(2, torch.log2(max_value).ceil_())
-        elif hard == 'powf':   # floor round to pow of 2
-            max_value = torch.pow(2, torch.log2(max_value).floor_())
-        elif hard == 'pow2':   # 1 bit round to 1* or 1.5* pow of 2
-            max_value1 = torch.pow(2, torch.log2(max_value).ceil_())
-            max_value2 = torch.pow(2, torch.log2(max_value).floor_())
-            max_value3 = torch.add(max_value1,max_value2).div_(2)
-            flag = max_value.gt(max_value3)
-            max_value = torch.where(flag, max_value1, max_value3)
-        elif hard == 'pows':   # same mantissa and pow of 2
-            mantissa = max_value.max()
-            max_value.div_(mantissa)
-            max_value = torch.pow(2, torch.log2(max_value).ceil_())
-            max_value.mul_(mantissa)
-        if hard != 'real':   # range=2*max if pow or unbias
-            abs_max = torch.max(max_value, -min_value)
-            range_value = 2*abs_max if signed else abs_max
-            zero_point = -1*abs_max if signed else 0.
-        else:       # range=max-min if hard = real
-            range_value = max_value - min_value
-            zero_point = min_value
-        scale = range_value / qrange
-        hscale = 2.**(level)
-        half = qmax/(2.**(level))
-        #print('debug w before q', output)
-                         
-        if linear is None:
-            output.add_(qmin * scale - zero_point).div_(scale)
-            #print("debug w min max:", output.min(), output.max())
-            mask = output.abs().gt(half)
-            #ratio = mask.type(torch.float16).mean()
-            #print ('weight',ratio)
-            output = torch.where(mask, output, output.mul(hscale))
-            if stochastic:
-                #print("debug stochastic")
-                noise = output.new(output.shape).uniform_(-0.5, 0.5)
-                output.add_(noise)
-            output.clamp_(qmin, qmax).round_() # quantize
-            #output = torch.where(mask, output.mul(hscale), output)
-            output = torch.where(mask, output, output.div(hscale))
-            output.mul_(scale).add_(zero_point - qmin * scale) # dequantize
-        elif linear == 'tanh':
-            output.add_(qmin * scale - zero_point).div_(scale)
-            mask = output.abs().gt(half)
-            #ratio = mask.type(torch.float16).mean()
-            #print ('weight',ratio)
-            # further scale values larger than half to compress precision
-            #output = torch.where(mask, output.div(hscale), output)
-            output = torch.where(mask, output, output.mul(hscale))
-            ratio = 4/half
-            thres = half
-            output.mul_(ratio).sigmoid_().mul_(2*thres).sub_(thres)
-            if stochastic:
-                noise = output.new(output.shape).uniform_(-0.5, 0.5)
-                output.add_(noise)
-            output.clamp_(qmin,qmax).round_()
-            output.add_(thres).div_(2*thres).reciprocal_().sub_(1).log_().div(-ratio)
-            #output = torch.where(mask, output.mul(hscale), output)
-            output = torch.where(mask, output, output.div(hscale))
-            output.mul_(scale).add_(zero_point - qmin * scale) # dequantize
-        elif linear == 'tan':
-            output.add_(qmin * scale - zero_point).div_(scale)
-            mask = output.abs().gt(half)
-            # further scale values larger than half to compress precision
-            output = torch.where(mask, output, output.mul(hscale))
-            ratio = 4/qmax
-            thres = qmax
-            output.mul_(ratio).sigmoid_().mul_(2*thres).sub_(thres)
-            if stochastic:
-                noise = output.new(output.shape).uniform_(-0.5, 0.5)
-                output.add_(noise)
-            output.clamp_(qmin,qmax).round_()
-            output = torch.where(mask, output, output.div(hscale))
-            output.mul_(scale).add_(zero_point - qmin * scale) # dequantize
-        else:
-            raise ValueError('wrong linear config')
-
-        #print('debug w after q', output)
-        return output
+        a = input.clone()
+        aa = a.clone()
+        max_value, min_value = min_max(input, group)
+        qa, scale_t, scale_g = simulate_quantize(a, max_value, min_value, 
+                                                 mbits, 
+                                                 ebits, 
+                                                 signed, 
+                                                 stochastic, 
+                                                 group, 
+                                                 g_scale_type,
+                                                 value_type)
+        
+        return qa      
+        
 
     @staticmethod
     def backward(ctx, grad_output):
@@ -214,248 +168,71 @@ class Quantize_W(Function):
 
 
 class Quantize_A(Function):
-    r''' This is the function which quantizes a directly during forward
+    ''' Function which quantizes a directly during both forward and backward
         Call it by Quantize_A.apply(input, ...)
     '''
-
     @staticmethod
-    def forward(ctx, input, num_bits=8, linear=None, signed=False, 
-                stochastic=True, erange='max', group=False, level=2, hard='real'):
-        ''' Function arguements:
-                input       : unquantized input         
-                num_bits    : bw of quantized input
-                linear      : None for linear
-                signed      : signed quantize or not    
-                stochastic  : add noise when quantize or not 
+    def forward(ctx, input, mbits=4, ebits=2, signed=False, stochastic=False, 
+                group='nc', g_scale_type='simple', value_type='sudden'):
+        ''' Forward function
+                input           : unquantized weight       
+                mbits           : mantissa bw of quantized weight
+                ebits           : exponent bw of quantized weight
+                signed          : signed quantize means no extra sign bit    
+                stochastic      : add noise when quantize or not 
+                group           : how to group 
         '''
-        output = input.clone()
-
-        num_chunks = 16
-
-        if group != False:
-            if len(input.shape) == 4:
-                B,C,H,W = input.shape
-                a = input.clone()
-            else:
-                B,C,H,W = (0,0,0,0)
-                raise ValueError('appear fc')
-
-            if group == 'nc':
-                #print("debug nc ",a.shape)
-                a = a.view(B, C, H*W)
-                #print("debug nc ",a.shape)
-                if erange == 'max':
-                    max_value = a.max(-1)[0]
-                    min_value = a.min(-1)[0]
-                elif erange == 'mean':
-                    raise ValueError('nc group can not work with mean erange')
-                elif erange == 'std':
-                    raise ValueError('nc group can not work with std erange')
-                else:
-                    raise ValueError('wrong erange config')
-                #print("debug nc ",max_value.shape)
-                assert len(max_value.shape) == 2
-                max_value.unsqueeze_(2).unsqueeze_(2)
-                min_value.unsqueeze_(2).unsqueeze_(2)
-                #print("debug nc ",max_value.shape)
-            elif B > 1:
-                if ((B*H*W) % num_chunks != 0) or ((C*H*W) % num_chunks != 0):
-                    num_chunks =1
-                if group == 'n':
-                    a = a.view(B, num_chunks, (C*H*W)//num_chunks)
-                elif group == 'c':
-                    a = a.transpose(0,1).contiguous().view(C,num_chunks,(B*H*W)//num_chunks)
-                elif group == 'ct':
-                    a = a.transpose(0,1).contiguous().view(C//2,num_chunks,(B*H*W*2)//num_chunks)
-                elif group == 'nt':
-                    a = a.view(B//2, num_chunks, (C*2*H*W)//num_chunks)
-                else:
-                    raise ValueError('wrong group config')
-
-                if erange == 'max':
-                    max_value = a.max(-1)[0].max(-1)[0]
-                    min_value = a.min(-1)[0].min(-1)[0]
-                elif erange == 'mean':
-                    max_value = a.max(-1)[0].mean(-1)
-                    min_value = a.min(-1)[0].mean(-1)
-                elif erange == 'std':
-                    mean_value = a.mean((1,2))
-                    std_value = a.std((1,2))
-                    max_value = mean_value + 3*std_value
-                    min_value = mean_value - 3*std_value
-                else:
-                    raise ValueError('wrong erange config')
-                assert len(max_value.shape) == 1
-                if group == 'c':
-                    max_value.unsqueeze_(1).unsqueeze_(1).unsqueeze_(0)
-                    min_value.unsqueeze_(1).unsqueeze_(1).unsqueeze_(0)
-                elif group == 'nt':
-                    max_value = max_value.repeat(1,2).view(B,1,1,1)
-                    min_value = min_value.repeat(1,2).view(B,1,1,1)
-                elif group == 'ct':
-                    max_value = max_value.repeat(1,2).view(1,C,1,1)
-                    min_value = min_value.repeat(1,2).view(1,C,1,1)
-                else:
-                    max_value.unsqueeze_(1).unsqueeze_(1).unsqueeze_(1)
-                    min_value.unsqueeze_(1).unsqueeze_(1).unsqueeze_(1)
-            else:  # B == 1
-                max_value = input.max()  
-                min_value = input.min() 
-                #print('debug b==1',end="")
-
-        elif group == False:       # group == False
-            if erange == 'max':
-                max_value = input.max()  
-                min_value = input.min() 
-            elif erange == 'mean':
-                max_value = input.max(-1)[0].max(-1)[0].max(-1)[0].mean()
-                min_value = input.min(-1)[0].min(-1)[0].min(-1)[0].mean()
-            elif erange == 'std':
-                mean_value = input.mean()
-                std_value = input.std()
-                max_value = mean_value + 3*std_value
-                min_value = mean_value - 3*std_value
-            else:
-                raise ValueError('wrong erange config')
-        else:
-            raise ValueError('wrong group config')
-
-        # using GEMMLOWP quantize, shift and scale real input to qmin~qmax
-        qmin = -(2.**(num_bits - 1)) if signed else 0.
-        qmax = qmin + 2.**(num_bits)
-        qrange = qmax - qmin
-        max_value = torch.where(max_value.lt(0.0001), max_value+0.0001, max_value)
-        if hard == 'pow':   # ceil round to pow of 2
-            max_value = torch.pow(2, torch.log2(max_value).ceil_())
-        elif hard == 'powf':   # floor round to pow of 2
-            max_value = torch.pow(2, torch.log2(max_value).floor_())
-        elif hard == 'pow2':   # 1 bit round to 1* or 1.5* pow of 2
-            max_value1 = torch.pow(2, torch.log2(max_value).ceil_())
-            max_value2 = torch.pow(2, torch.log2(max_value).floor_())
-            max_value3 = torch.add(max_value1,max_value2).div_(2)
-            flag = max_value.gt(max_value3)
-            max_value = torch.where(flag, max_value1, max_value3)
-        elif hard == 'pows':   # same mantissa and pow of 2
-            mantissa = max_value.max()
-            max_value.div_(mantissa)
-            max_value = torch.pow(2, torch.log2(max_value).ceil_())
-            max_value.mul_(mantissa)
-        if hard != 'real':   # range=2*max if pow or unbias
-            abs_max = torch.max(max_value, -min_value)
-            range_value = 2*abs_max if signed else abs_max
-            zero_point = -1*abs_max if signed else 0.
-        else:       # range=max-min if 'real'
-            range_value = max_value - min_value
-            zero_point = min_value
-        scale = range_value / qrange
-        hscale = 2.**(level)
-        half = qmax/hscale 
-        #print("debug a before q", output)
-        if torch.isnan(output).sum():
-            exit('output nan')
-        #print("debug range_value", range_value)
-        if torch.eq(range_value,0).sum():
-            exit('range zero')
-        #print("debug zero_point", zero_point)
-        #print("debug scale", scale)
-        #print("debug half", half)
-        #print("debug hscale", hscale)
-                    
-        if linear is None:
-            (output.add_(qmin * scale - zero_point)).div_(scale)
-            mask = output.abs().gt(half)
-            #ratio = mask.type(torch.float16).mean()
-            #print ('activ',ratio)
-            # further scale values less than half to boost precision
-            output = torch.where(mask, output, output.mul(hscale))
-            #print("debug mul hscale min max:", output.min(), output.max())
-            if stochastic:
-                noise = output.new(output.shape).uniform_(-0.5, 0.5)
-                output.add_(noise)
-            output.clamp_(qmin, qmax).round_() # quantize
-            #print("debug round min max:", output.min(), output.max())
-            #output = torch.where(mask, output.mul(hscale), output)
-            output = torch.where(mask, output, output.div(hscale))
-            #print("debug mul hscale min max:", output.min(), output.max())
-            output.mul_(scale).add_(zero_point - qmin * scale) # dequantize
-            #print("debug mul scale min max:", output.min(), output.max())
-        elif linear == 'tanh':
-            output.add_(qmin * scale - zero_point).div_(scale)
-            mask = output.abs().gt(half)
-            #ratio = mask.type(torch.float16).mean()
-            #print ('weight',ratio)
-            # further scale values larger than half to compress precision
-            #output = torch.where(mask, output.div(hscale), output)
-            output = torch.where(mask, output, output.mul(hscale))
-            ratio = 4/half
-            thres = half
-            output.mul_(ratio).sigmoid_().mul_(2*thres).sub_(thres)
-            if stochastic:
-                noise = output.new(output.shape).uniform_(-0.5, 0.5)
-                output.add_(noise)
-            output.clamp_(qmin,qmax).round_()
-            output.add_(thres).div_(2*thres).reciprocal_().sub_(1).log_().div(-ratio)
-            #output = torch.where(mask, output.mul(hscale), output)
-            output = torch.where(mask, output, output.div(hscale))
-            output.mul_(scale).add_(zero_point - qmin * scale) # dequantize
-        elif linear == 'tan':
-            output.add_(qmin * scale - zero_point).div_(scale)
-            mask = output.abs().gt(half)
-            # further scale values larger than half to compress precision
-            output = torch.where(mask, output, output.mul(hscale))
-            ratio = 4/qmax
-            thres = qmax
-            # unsigned :
-            output.mul_(ratio).sigmoid_().mul_(thres)
-            if stochastic:
-                noise = output.new(output.shape).uniform_(-0.5, 0.5)
-                output.add_(noise)
-            output.clamp_(qmin,qmax).round_()
-            output = torch.where(mask, output, output.div(hscale))
-            output.mul_(scale).add_(zero_point - qmin * scale) # dequantize
-        else:
-            raise ValueError('wrong linear config')
-
-        #print("debug a after q", output)
-        return output
-
+        a = input.clone()
+        aa = a.clone()
+        max_value, min_value = min_max(input, group)
+        qa, scale_t, scale_g = simulate_quantize(a, max_value, min_value, 
+                                                 mbits, 
+                                                 ebits, 
+                                                 signed, 
+                                                 stochastic, 
+                                                 group, 
+                                                 g_scale_type,
+                                                 value_type)
+        ctx.scale_t = scale_t
+        
+        return qa 
+        
 
     @staticmethod
     def backward(ctx, grad_output):
-        # straight-through estimator
-
-        grad_input = grad_output.clone()
-        #torch.set_printoptions(precision=8)
-        #print("debug grad of input:",grad_input.max(), grad_input.min(), grad_input.shape)
+        r''' Backword function
+                ctx         : ctx record info from forward
+                grad_output : unquantized gradient of weight
+        '''
+        grad_input = grad_output.clamp(-ctx.scale_t, ctx.scale_t)
 
         return grad_input, None, None, None, None, None, None, None, None
 
 
 
-
-class Quantize_G(Function):
-    r''' This is the function which quantizes g directly during backward
-        Call it by Quantize_G.apply(input, ...)
+class Quantize_E(Function):
+    ''' Function which quantizes e directly during backward
+        Call it by Quantize_E.apply(input, ...) in forward process
     '''
-
     @staticmethod
-    def forward(ctx, input, num_bits=8, linear=None, signed=True, stochastic=True, 
-                erange=True, group=False, level=3, hard='real'):
-        ''' Function arguements:
-                input       : activation input                     
-                num_bits    : bw of quantized gradient 
-                signed      : signed quantize or not    
-                stochastic  : add noise when quantize or not 
+    def forward(ctx, input, mbits=4, ebits=2, signed=False, stochastic=True, 
+                group='nc', g_scale_type='simple', value_type='sudden'):
+        ''' Forward function
+                input           : unquantized weight       
+                mbits           : mantissa bw of quantized weight
+                ebits           : exponent bw of quantized weight
+                signed          : signed quantize means no extra sign bit    
+                stochastic      : add noise when quantize or not 
+                group           : how to group 
         '''
         # record info and return input when forward
-        ctx.num_bits   = num_bits
-        ctx.linear     = linear
-        ctx.signed     = signed
-        ctx.stochastic = stochastic
-        ctx.erange     = erange
-        ctx.group      = group
-        ctx.level      = level
-        ctx.hard       = hard
+        ctx.mbits        = mbits
+        ctx.ebits        = ebits
+        ctx.signed       = signed
+        ctx.stochastic   = stochastic
+        ctx.group        = group
+        ctx.g_scale_type = g_scale_type
+        ctx.value_type   = value_type
 
         output = input.clone()
 
@@ -463,199 +240,24 @@ class Quantize_G(Function):
 
 
     @staticmethod
-    def backward(ctx, input):
-
-        output = input.clone()
-
-        num_chunks = 16
-
-        if ctx.group != False:
-            if len(input.shape) == 4:
-                B,C,H,W = input.shape
-                a = input.clone()
-            else:
-                B,C,H,W = (0,0,0,0)
-                raise ValueError('appear fc')
-
-            if ctx.group == 'nc':
-                a = a.view(B, C, H*W)
-                if ctx.erange == 'max':
-                    max_value = a.max(2)[0]
-                    min_value = a.min(2)[0]
-                elif ctx.erange == 'mean':
-                    raise ValueError('wrong nc group work with mean erange')
-                elif ctx.erange == 'std':
-                    raise ValueError('wrong nc group work with std erange')
-                else:
-                    raise ValueError('wrong erange config')
-                assert len(max_value.shape) == 2
-                max_value.unsqueeze_(2).unsqueeze_(2)
-                min_value.unsqueeze_(2).unsqueeze_(2)
-            elif B>1:
-                if ((B*H*W) % num_chunks != 0) or ((C*H*W) % num_chunks != 0):
-                    num_chunks =1
-                if ctx.group == 'n':
-                    a = a.view(B, num_chunks, (C*H*W)//num_chunks)
-                elif ctx.group == 'c':
-                    a = a.transpose(0,1).contiguous().view(C,num_chunks,(B*H*W)//num_chunks)
-                elif ctx.group == 'ct':
-                    a = a.transpose(0,1).contiguous().view(C//2,num_chunks,(B*H*W*2)//num_chunks)
-                elif ctx.group == 'nt':
-                    a = a.view(B//2, num_chunks, (C*2*H*W)//num_chunks)
-                else:
-                    raise ValueError('wrong group config')
-
-                if ctx.erange == 'max':
-                    max_value = a.max(-1)[0].max(-1)[0]
-                    min_value = a.min(-1)[0].min(-1)[0]
-                elif ctx.erange == 'mean':
-                    max_value = a.max(-1)[0].mean(-1)
-                    min_value = a.min(-1)[0].mean(-1)
-                elif ctx.erange == 'std':
-                    mean_value = a.mean((1,2))
-                    std_value = a.std((1,2))
-                    max_value = mean_value + 3*std_value
-                    min_value = mean_value - 3*std_value
-                else:
-                    raise ValueError('wrong erange config')
-                assert len(max_value.shape) == 1
-                if ctx.group == 'c':
-                    max_value.unsqueeze_(1).unsqueeze_(1).unsqueeze_(0)
-                    min_value.unsqueeze_(1).unsqueeze_(1).unsqueeze_(0)
-                elif ctx.group == 'nt':
-                    max_value = max_value.repeat(1,2).view(B,1,1,1)
-                    min_value = min_value.repeat(1,2).view(B,1,1,1)
-                elif ctx.group == 'ct':
-                    max_value = max_value.repeat(1,2).view(1,C,1,1)
-                    min_value = min_value.repeat(1,2).view(1,C,1,1)
-                else:
-                    max_value.unsqueeze_(1).unsqueeze_(1).unsqueeze_(1)
-                    min_value.unsqueeze_(1).unsqueeze_(1).unsqueeze_(1)
-            else:  # B == 1
-                max_value = input.max()  
-                min_value = input.min() 
-                print('b==1',end="")
-                    
-
-        elif ctx.group == False:       # group == False
-            if ctx.erange == 'max':
-                max_value = input.max()  
-                min_value = input.min() 
-            elif ctx.erange == 'mean':
-                max_value = input.max(-1)[0].max(-1)[0].max(-1)[0].mean()
-                min_value = input.min(-1)[0].min(-1)[0].min(-1)[0].mean()
-            elif ctx.erange == 'std':
-                mean_value = input.mean()
-                std_value = input.std()
-                max_value = mean_value + 3*std_value
-                min_value = mean_value - 3*std_value
-            else:
-                raise ValueError('wrong erange config')
-        else:
-            raise ValueError('wrong group config')
-
-        #print("debug g before q",output)
-        if torch.isnan(output).sum():
-            exit('nan g')
-        #num_bits = ctx.num_bits + ctx.level # first scale for n+l bits
-        num_bits = ctx.num_bits
-        qmin = -(2.**(num_bits - 1)) if ctx.signed else 0.
-        qmax = qmin + 2.**(num_bits)
-        qrange = qmax - qmin
-        max_value = torch.where(max_value.lt(0.0000001), max_value+0.0000001, max_value)
-        if ctx.hard == 'pow':   # ceil round to pow of 2
-            max_value = torch.pow(2, torch.log2(max_value).ceil_())
-        elif ctx.hard == 'powf':   # floor round to pow of 2
-            max_value = torch.pow(2, torch.log2(max_value).floor_())
-        elif ctx.hard == 'pow2':   # 1 bit round to 1* or 1.5* pow of 2
-            max_value1 = torch.pow(2, torch.log2(max_value).ceil_())
-            max_value2 = torch.pow(2, torch.log2(max_value).floor_())
-            max_value3 = torch.add(max_value1,max_value2).div_(2)
-            flag = max_value.gt(max_value3)
-            max_value = torch.where(flag, max_value1, max_value3)
-        elif ctx.hard == 'pows':   # same mantissa and pow of 2
-            mantissa = max_value.max()
-            max_value.div_(mantissa)
-            max_value = torch.pow(2, torch.log2(max_value).ceil_())
-            max_value.mul_(mantissa)
-        if ctx.hard != 'real':   # range=2*max if pow or unbias
-            abs_max = torch.max(max_value, -min_value)
-            range_value = 2*abs_max if ctx.signed else abs_max
-            zero_point = -1*abs_max if ctx.signed else 0.
-        else:       # range=max-min if else
-            range_value = max_value - min_value
-            zero_point = min_value
-        scale = (range_value/qrange)
-        hscale = 2.**(ctx.level)
-        half = qmax/hscale   # half is near n bits number
-
-        if ctx.linear is None:
-            output.add_(qmin * scale - zero_point).div_(scale)
-            mask = output.abs().gt(half)
-            #ratio = mask.type(torch.float16).mean()
-            #print ('grad',ratio)
-            output = torch.where(mask, output, output.mul(hscale))
-            if ctx.stochastic:
-                noise = output.new(output.shape).uniform_(-0.5, 0.5)
-                output.add_(noise)
-            output.clamp_(qmin, qmax).round_()  # quantize
-            output = torch.where(mask, output, output.div(hscale))
-            output.mul_(scale).add_(zero_point - qmin * scale) # dequantize
-        elif ctx.linear == 'tanh':
-            output.add_(qmin * scale - zero_point).div_(scale)
-            mask = output.abs().gt(half)
-            #ratio = mask.type(torch.float16).mean()
-            #print ('weight',ratio)
-            # further scale values larger than half to compress precision
-            #output = torch.where(mask, output.div(hscale), output)
-            output = torch.where(mask, output, output.mul(hscale))
-            ratio = 4/half
-            thres = half
-            output.mul_(ratio).sigmoid_().mul_(2*thres).sub_(thres)
-            if ctx.stochastic:
-                noise = output.new(output.shape).uniform_(-0.5, 0.5)
-                output.add_(noise)
-            output.clamp_(qmin,qmax).round_()
-            output.add_(thres).div_(2*thres).reciprocal_().sub_(1).log_().div(-ratio)
-            #output = torch.where(mask, output.mul(hscale), output)
-            output = torch.where(mask, output, output.div(hscale))
-            output.mul_(scale).add_(zero_point - qmin * scale) # dequantize
-        elif ctx.linear == 'lap':
-            output.add_(qmin * scale - zero_point).div_(scale)
-            mask = output.abs().gt(half)
-            #ratio = mask.type(torch.float16).mean()
-            #print ('weight',ratio)
-            # further scale values larger than half to compress precision
-            output = torch.where(mask, output, output.mul(hscale))
-            ratio = 4/half
-            thres = half
-            output.mul_(ratio).sigmoid_().mul_(2*thres).sub_(thres)
-            if ctx.stochastic:
-                noise = output.new(output.shape).uniform_(-0.5, 0.5)
-                output.add_(noise)
-            output.clamp_(qmin,qmax).round_()
-            output.add_(thres).div_(2*thres).reciprocal_().sub_(1).log_().div(-ratio)
-            output = torch.where(mask, output, output.div(hscale))
-            output.mul_(scale).add_(zero_point - qmin * scale) # dequantize
-        elif ctx.linear == 'tan':
-            output.add_(qmin * scale - zero_point).div_(scale)
-            mask = output.abs().gt(half)
-            # further scale values larger than half to compress precision
-            output = torch.where(mask, output, output.mul(hscale))
-            ratio = 4/qmax
-            thres = qmax
-            output.mul_(ratio).sigmoid_().mul_(2*thres).sub_(thres)
-            if ctx.stochastic:
-                noise = output.new(output.shape).uniform_(-0.5, 0.5)
-                output.add_(noise)
-            output.clamp_(qmin,qmax).round_()
-            output = torch.where(mask, output, output.div(hscale))
-            output.mul_(scale).add_(zero_point - qmin * scale) # dequantize
-        else:
-            raise ValueError('wrong linear config')
-
-        #print("debug g after q",output)
-        return output, None, None, None, None, None, None, None, None
+    def backward(ctx, grad_output):
+        ''' Backword function
+            ctx         : ctx record info from forward                 
+            grad_output : unquantized gradient of activation         
+        '''
+        a = grad_output.clone()         
+        aa = a.clone()         
+        max_value, min_value = min_max(grad_output, ctx.group)       
+        qa, scale_t, scale_g = simulate_quantize(a, max_value, min_value,  
+                                                 ctx.mbits,     
+                                                 ctx.ebits, 
+                                                 ctx.signed,
+                                                 ctx.stochastic,
+                                                 ctx.group, 
+                                                 ctx.g_scale_type,
+                                                 ctx.value_type)
+        
+        return qa, None, None, None, None, None, None, None, None
 
 
 

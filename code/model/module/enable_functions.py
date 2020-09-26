@@ -13,6 +13,6 @@ def q_enable(m):
     '''
     if hasattr(m, 'quantize'):
         m.quantize = True
-        print("    Enable quantize of")
+        print(" @  Enable quantize of")
         print(m)
 

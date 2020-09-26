@@ -3,9 +3,13 @@ float_epoch: 1
 print_freq: 50
 NETWORK: 
     batchnorm: true
-    quantize: false
+    quantize: true
     q_cfg:
         bw:
+            - 2
+            - 2
+            - 2
+        level:
             - 2
             - 2
             - 2
@@ -15,11 +19,8 @@ NETWORK:
             - nc
             - n
             - nc
-        level:
-            - 1
-            - 1
-            - 1
-        hard: pows
+        g_scale_type: simple
+        value_type: sudden
 TRAIN: 
     epoch: 181
     learning_rate: 

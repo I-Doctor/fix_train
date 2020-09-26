@@ -52,16 +52,18 @@ def create_default_cfg():
     config.NETWORK.q_cfg = edict()
     # configs
     config.NETWORK.q_cfg.bw = [8,8,8]
-    config.NETWORK.q_cfg.linear = [None, None, None]
+    config.NETWORK.q_cfg.level = [0,0,0]
     config.NETWORK.q_cfg.signed = True
     config.NETWORK.q_cfg.stochastic = False
     config.NETWORK.q_cfg.qfirst = False
     config.NETWORK.q_cfg.qlinear = False
     config.NETWORK.q_cfg.qbn = False
     config.NETWORK.q_cfg.erange = ['max','max','max']
-    config.NETWORK.q_cfg.group = [False, False, False]
-    config.NETWORK.q_cfg.level = [0,0,0]
+    config.NETWORK.q_cfg.linear = [None, None, None]
     config.NETWORK.q_cfg.hard = 'pow'
+    config.NETWORK.q_cfg.group = [False, False, False]
+    config.NETWORK.q_cfg.g_scale_type = 'simple'
+    config.NETWORK.q_cfg.value_type = 'sudden'
 
     config.TRAIN = edict()
     # Resume or not"

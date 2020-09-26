@@ -42,7 +42,7 @@ class QLinear(nn.Linear):
 
         self.quantize_a = Quantize_A
         self.quantize_w = Quantize_W
-        self.quantize_g = Quantize_G
+        self.quantize_e = Quantize_E
 
     def forward(self, input):
 
