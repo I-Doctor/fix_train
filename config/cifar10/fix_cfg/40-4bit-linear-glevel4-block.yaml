@@ -6,13 +6,13 @@ NETWORK:
     quantize: true
     q_cfg:
         bw:
-            - 1
-            - 1
-            - 1
+            - 4
+            - 4
+            - 4
         level:
-            - 3
-            - 3
-            - 3
+            - 0
+            - 0
+            - 0
         stochastic: true
         signed: false
         qfirst: false
@@ -44,7 +44,4 @@ DATA:
 LOG:
     frequent: 300
     types:
-        - e
-        - a
         - w
-        - g

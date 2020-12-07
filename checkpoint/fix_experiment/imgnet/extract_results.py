@@ -181,21 +181,20 @@ def plot_file(filename, output_path, config_names, count, dist_type):
         data_flatten = layer_data.flatten()
         print('    data numbers:',len(data_flatten))
         if dist_type.startswith('log'):
+            data_flatten = np.abs(data_flatten)
             data_flatten = np.where(data_flatten<1e-12,1e-12,data_flatten)
-            data_flatten = np.log2(np.abs(data_flatten))
-            _range = (np.max(data_flatten.max()-30,40),data_flatten.max())
+            data_flatten = np.log2(data_flatten)
+            _min = np.maximum(data_flatten.max()-30,-39)
+            _max = np.maximum(data_flatten.max(),-38) 
             if data_type == 'e':
-                plt.hist(data_flatten, bins = 100, range=_range, log=True)
+                plt.hist(data_flatten, bins = 100, range=(_min,_max), log=True)
             else:
-                plt.hist(data_flatten, bins = 100, range=_range)
+                plt.hist(data_flatten, bins = 100, range=(_min,_max))
         else:
             if data_flatten.min() == 0:
-                maxx = data_flatten.max()
-                maxr = np.max(maxx, 1e-12)
-                _range = (1e-12, maxr)
-                print(_range)
+                _range = (1e-12, np.maximum(data_flatten.max(), 1e-12))
                 plt.hist(data_flatten, range=_range, bins = 100)
-            if data_type == 'e':
+            elif data_type == 'e':
                 plt.hist(data_flatten, bins = 100, log=True)
             else:
                 plt.hist(data_flatten, bins = 100)
