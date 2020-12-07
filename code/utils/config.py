@@ -53,8 +53,8 @@ def create_default_cfg():
     # configs
     config.NETWORK.q_cfg.bw = [8,8,8]
     config.NETWORK.q_cfg.level = [0,0,0]
-    config.NETWORK.q_cfg.signed = True
-    config.NETWORK.q_cfg.stochastic = False
+    config.NETWORK.q_cfg.signed = False
+    config.NETWORK.q_cfg.stochastic = True
     config.NETWORK.q_cfg.qfirst = False
     config.NETWORK.q_cfg.qlinear = False
     config.NETWORK.q_cfg.qbn = False
@@ -63,7 +63,7 @@ def create_default_cfg():
     config.NETWORK.q_cfg.hard = 'pow'
     config.NETWORK.q_cfg.group = [False, False, False]
     config.NETWORK.q_cfg.g_scale_type = 'simple'
-    config.NETWORK.q_cfg.value_type = 'sudden'
+    config.NETWORK.q_cfg.value_type = 'progess'
 
     config.TRAIN = edict()
     # Resume or not"

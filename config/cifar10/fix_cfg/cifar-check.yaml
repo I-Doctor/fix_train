@@ -15,15 +15,16 @@ NETWORK:
             - 2
             - 2
         stochastic: true
+        signed: false
         qfirst: false
         group:
-            - nc
-            - n
-            - nc
-        g_scale_type: simple
-        value_type: sudden
+            - false
+            - false
+            - false
+        g_scale_type: complex
+        value_type: progress
 TRAIN: 
-    epoch: 6
+    epoch: 180
     optimizer: SGDm
     learning_rate: 
         - 0.1
@@ -56,9 +57,6 @@ DATA:
     valid_batch_size: 128
     valid_num_works: 8
 LOG:
-    frequent: 2
+    frequent: 200
     types:
-        - w
         - g
-        - a
-        - e

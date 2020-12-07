@@ -8,9 +8,9 @@ NETWORK:
     quantize: true
     q_cfg:
         bw:
-            - 1
-            - 1
-            - 1
+            - 4
+            - 4
+            - 4
         level:
             - 1
             - 1
@@ -19,9 +19,10 @@ NETWORK:
         qfirst: false
         group: 
             - nc
-            - n
+            - c
             - nc
-        hard: pows
+        g_scale_type: complex
+        value_type: progress
 TRAIN: 
     epoch: 181
     optimizer: SGDm
@@ -43,9 +44,6 @@ DATA:
     valid_batch_size: 128
     valid_num_works: 8
 LOG:
-    frequent: 30
+    frequent: 300
     types:
-        - e
-        - a
         - w
-        - g

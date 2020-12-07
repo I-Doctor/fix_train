@@ -59,7 +59,7 @@ def simulate_quantize(a, max_value, min_value, mbits, ebits, signed, stochastic,
     # get scale_t
     abs_max   = torch.max(max_value, -min_value)         
     scale_t   = abs_max.max()
-    scale_g   = 0
+    scale_g   = 1.
 
     # get scale_g
     if group != False:
@@ -89,9 +89,9 @@ def simulate_quantize(a, max_value, min_value, mbits, ebits, signed, stochastic,
     if value_type == 'sudden':
         exp_e.clamp_(-(2.**ebits),10)  # quantize exp_e by clamp small value
         man_e  = a.div(2.**exp_e)
-        man_e  = man_e.sub_(1).mul_(qmax)
-    # progess underflow, unormal value with min exp_e + 1
-    elif value_type == 'progess':
+        man_e.sub_(1).mul_(qmax)
+    # progress underflow, unormal value with min exp_e + 1
+    elif value_type == 'progress':
         exp_e.clamp_(-(2.**ebits)+1,10)  # quantize exp_e by clamp small value
         man_e  = a.div(2.**exp_e)
         # quantize mantissa of values greater than 1 by sub 1
@@ -111,7 +111,7 @@ def simulate_quantize(a, max_value, min_value, mbits, ebits, signed, stochastic,
     # rescale qmax and add 1 back
     if value_type == 'sudden':
         man_e.div_(qmax).add_(1)
-    elif value_type == 'progess':
+    elif value_type == 'progress':
         man_e.div_(qmax)
         man_e = torch.where(mask, man_e.add(1), man_e)
     else:  

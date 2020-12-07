@@ -6,21 +6,21 @@ NETWORK:
     quantize: true
     q_cfg:
         bw:
-            - 2
-            - 2
-            - 2
+            - 4
+            - 4
+            - 4
         level:
-            - 2
-            - 2
-            - 2
+            - 0
+            - 0
+            - 0
         stochastic: true
         qfirst: false
         group: 
             - nc
-            - n
+            - c 
             - nc
         g_scale_type: simple 
-        value_type: progess
+        value_type: progress
 TRAIN: 
     epoch: 181
     learning_rate: 
@@ -41,9 +41,6 @@ DATA:
     valid_batch_size: 128
     valid_num_works: 8
 LOG:
-    frequent: 30
+    frequent: 300
     types:
-        - a
         - w
-        - e
-        - g
