@@ -5,25 +5,26 @@ NETWORK:
     depth: 18
     num_classes: 1000
     batchnorm: true
-    quantize: true
+    quantize: false
     q_cfg:
         bw:
             - 4
-            - 5
-            - 5
-        stochastic: false
-        qfirst: false
+            - 4
+            - 4
+        stochastic: true
+        signed: false
         group: 
             - nc
             - n
             - nc
         level:
-            - 1
-            - 1
-            - 1
-        hard: pows
+            - 3
+            - 3
+            - 3
+        g_scale_type: complex
+        value_type: progress
 TRAIN: 
-    epoch: 85 
+    epoch: 88 
     optimizer: SGDm
     resume: null
     evaluate: false
@@ -34,8 +35,8 @@ TRAIN:
         - 0.0005
     decay_step:
         - 0
-        - 30
-        - 60
+        - 29
+        - 55
         - 80
     warmup: false
     weight_decay: 0.0005
@@ -58,6 +59,6 @@ DATA:
     valid_batch_size: 256
     valid_num_works: 8
 LOG:
-    frequent: 28
+    frequent: 280
     types:
-        - g
+        - w
