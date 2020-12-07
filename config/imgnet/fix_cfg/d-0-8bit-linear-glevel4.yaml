@@ -5,7 +5,7 @@ NETWORK:
     depth: 18
     num_classes: 1000
     batchnorm: true
-    quantize: true
+    quantize: false
     q_cfg:
         bw:
             - 8
