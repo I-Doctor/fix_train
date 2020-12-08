@@ -229,6 +229,16 @@ class ResNet(nn.Module):
         # initialize
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
+                nn.init.kaiming_normal_(m.weight, mode='fan_out', nolinearity='relu')
+                if m.bias is not None:
+                    nn.init.constant_(m.bias, 0)
+            elif isinstance(m, nn.BatchNorm2d):
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
+            elif isinstance(m, nn.Linear):
+                nn.init.normal_(m.weight, 0, 0.01)
+                nn.init.constant_(m.bias, 0)
+            '''
                 n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
                 m.weight.data.normal_(0, math.sqrt(2. / n))
             elif isinstance(m, nn.BatchNorm2d):
@@ -237,6 +247,7 @@ class ResNet(nn.Module):
             elif isinstance(m, nn.Linear):
                 m.weight.data.normal_(0, 0.05)
                 m.bias.data.zero_()
+            '''
 
 
     def _make_layer(self, block, planes, blocks, stride=1, q_cfg=None):
@@ -325,6 +336,8 @@ class ResNet(nn.Module):
                 if m.magnitude == 'ceil' and lr_p != 0:
                     m.lr_scale_p = lr_p
                     print("    Set lr scale bit of",lr_p)
+                    print(m)
+
 
 
 def resnet(depth, num_classes, q_cfg=None):

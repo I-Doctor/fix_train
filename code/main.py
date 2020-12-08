@@ -205,15 +205,13 @@ def main_worker(gpu, ngpus_per_node, cfg):
     if net_cfg.pretrained:
         print("=> using pre-trained model '{}-{}'".format(net_cfg.arch, net_cfg.depth))
         #model = resnet(net_cfg.depth, net_cfg.num_classes, net_cfg.q_cfg)
-        #model = models.__dict__[net_cfg.arch+str(net_cfg.depth)](pretrained=True)
-        model = models.__dict__[net_cfg.arch](net_cfg.depth, net_cfg.num_classes, 
-                                              net_cfg.q_cfg)
+        model = models.__dict__[net_cfg.arch](depth = net_cfg.depth, num_classes=net_cfg.num_classes, 
+                                              q_cfg = net_cfg.q_cfg)
     else:
         print("=> creating model '{}-{}'".format(net_cfg.arch, net_cfg.depth))
         #model = resnet(net_cfg.depth, net_cfg.num_classes, net_cfg.q_cfg)
-        #model = models.__dict__[net_cfg.arch+str(net_cfg.depth)]()
-        model = models.__dict__[net_cfg.arch](net_cfg.depth, net_cfg.num_classes, 
-                                              net_cfg.q_cfg)
+        model = models.__dict__[net_cfg.arch](depth = net_cfg.depth, num_classes=net_cfg.num_classes, 
+                                              q_cfg = net_cfg.q_cfg)
 
     if cfg.gpu is not None:
         print("Use GPU: {} for training".format(cfg.gpu))

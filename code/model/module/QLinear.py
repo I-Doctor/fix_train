@@ -47,18 +47,20 @@ class QLinear(nn.Linear):
     def forward(self, input):
 
         #print("debug linear stochastic:",self.stochastic)
-        if self.training:
-            #print("debug linear training:",self.training)
-            Qinput  = self.quantize_a.apply(input, self.bw_a, self.linear_a, False,
-                      self.stochastic, self.erange[0], self.group[0], self.level_a, self.hard)
-        else:
-            #print("debug linear test set sto false")
-            Qinput  = self.quantize_a.apply(input, self.bw_a, self.linear_a, False,
-                      False, self.erange[0], self.group[0], self.level_a, self.hard)
-        Qweight = self.quantize_w.apply(self.weight, self.bw_w, self.linear_w, 
-                  self.signed, self.stochastic, self.erange[1], self.group[1], self.level_w, self.hard) 
-
         if self.quantize:
+            if self.training:
+                #print("debug linear training:",self.training)
+                Qinput= self.quantize_a.apply(input, self.bw_a, self.linear_a, False,
+                                              self.stochastic, self.erange[0], 
+                                              self.group[0], self.level_a, self.hard)
+            else:
+                #print("debug linear test set sto false")
+                Qinput= self.quantize_a.apply(input, self.bw_a, self.linear_a, False,
+                                              False, self.erange[0], self.group[0], 
+                                              self.level_a, self.hard)
+            Qweight = self.quantize_w.apply(self.weight, self.bw_w, self.linear_w, 
+                                        self.signed, self.stochastic, self.erange[1],
+                                        self.group[1], self.level_w, self.hard) 
             output = F.linear(Qinput, Qweight, self.bias)
             if self.bw_g is not None:
                 output = self.quantize_g.apply(output, self.bw_g, self.linear_g, 
@@ -68,5 +70,4 @@ class QLinear(nn.Linear):
             output = F.linear(input, self.weight, self.bias)
 
         return output
-
 

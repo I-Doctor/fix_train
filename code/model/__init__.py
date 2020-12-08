@@ -1,5 +1,6 @@
 """ Models
 """
 from .resnet import *
-from .vgg import *
+from .googlenet import *
+from .vggnet import *
 from .simplenet import *
