@@ -331,12 +331,12 @@ def main_worker(gpu, ngpus_per_node, cfg):
     print("===start loading data===")
     traindir = os.path.join(cfg.data_root, data_cfg.dataset+'_train')
     valdir = os.path.join(cfg.data_root, data_cfg.dataset+'_val')
-    #normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
-    #                                 std=[0.229, 0.224, 0.225])
-    normalize = transforms.Normalize(mean=data_cfg.pixel_means,
-                                     std=data_cfg.pixel_stds)
+    #normalize = transforms.Normalize(mean=data_cfg.pixel_means,
+    #                                 std=data_cfg.pixel_stds)
     
     if data_cfg.dataset=='ILSVRC2012_img':
+        normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                         std=[0.229, 0.224, 0.225])
         train_dataset = datasets.ImageFolder(
             traindir,
             transforms.Compose([
@@ -354,6 +354,8 @@ def main_worker(gpu, ngpus_per_node, cfg):
                 normalize,
             ]))
     else: # cifar 10
+        normalize = transforms.Normalize(mean=[0.4914, 0.4824, 0.4465],
+                                         std=[0.2470, 0.2435, 0.2616])
         train_dataset = datasets.CIFAR10(
             cfg.data_root+'cifar10',
             train=True,

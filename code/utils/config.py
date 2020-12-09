@@ -96,8 +96,8 @@ def create_default_cfg():
     config.DATA.shuffle = True
     # random crop image pad (no crop if 0)
     config.DATA.random_crop_pad = 4
-    config.DATA.pixel_means = np.array([0.4914, 0.4822, 0.4465])
-    config.DATA.pixel_stds  = np.array([0.2023, 0.1994, 0.2010])
+    #config.DATA.pixel_means = np.array([0.4914, 0.4822, 0.4465])
+    #config.DATA.pixel_stds  = np.array([0.2023, 0.1994, 0.2010])
     config.DATA.valid_batch_size = 128
     config.DATA.valid_num_works = 8
 

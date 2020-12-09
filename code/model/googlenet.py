@@ -107,8 +107,14 @@ class GoogLeNet(nn.Module):
         self.aux_logits = aux_logits
         self.transform_input = transform_input
 
-        self.conv1 = conv_block(3, 64, kernel_size=7, stride=2, padding=3)
-        self.maxpool1 = nn.MaxPool2d(3, stride=2, ceil_mode=True)
+        if num_classes == 1000:
+            self.conv1 = conv_block(3, 64, kernel_size=7, stride=2, padding=3)
+            self.maxpool1 = nn.MaxPool2d(3, stride=2, ceil_mode=True)
+        elif num_classes == 10:
+            self.conv1 = conv_block(3, 64, kernel_size=3, stride=1, padding=1)
+            self.maxpool1 = None
+        else:
+            exit('wrong num_classes')
         self.conv2 = conv_block(64, 64, kernel_size=1)
         self.conv3 = conv_block(64, 192, kernel_size=3, padding=1)
         self.maxpool2 = nn.MaxPool2d(3, stride=2, ceil_mode=True)
@@ -144,12 +150,15 @@ class GoogLeNet(nn.Module):
     def _initialize_weights(self) -> None:
         for m in self.modules():
             if isinstance(m, nn.Conv2d) or isinstance(m, nn.Linear):
+                '''
                 import scipy.stats as stats
                 X = stats.truncnorm(-2, 2, scale=0.01)
                 values = torch.as_tensor(X.rvs(m.weight.numel()), dtype=m.weight.dtype)
                 values = values.view(m.weight.size())
                 with torch.no_grad():
                     m.weight.copy_(values)
+                '''
+                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
             elif isinstance(m, nn.BatchNorm2d):
                 nn.init.constant_(m.weight, 1)
                 nn.init.constant_(m.bias, 0)
@@ -166,7 +175,7 @@ class GoogLeNet(nn.Module):
         # N x 3 x 224 x 224
         x = self.conv1(x)
         # N x 64 x 112 x 112
-        x = self.maxpool1(x)
+        x = self.maxpool1(x) if self.maxpool1 is not None else x
         # N x 64 x 56 x 56
         x = self.conv2(x)
         # N x 64 x 56 x 56
