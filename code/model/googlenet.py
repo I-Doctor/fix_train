@@ -3,8 +3,8 @@
 #  Author: Kai Zhong
 #  Email : zhongk19@mails.tsinghua.edu.cn
 #  
-#  Create Date : 2020.11.16
-#  File Name   : vggnet.py
+#  Create Date : 2020.12.08
+#  File Name   : googlenet.py
 #  Description : 
 #  Dependencies: 
 #  reference   https://github.com/pytorch/example
@@ -83,7 +83,7 @@ class GoogLeNet(nn.Module):
         self,
         depth:int = 0, # no function but only keep same with other models
         num_classes: int = 1000,
-        aux_logits: bool = True,
+        aux_logits: bool = False,
         transform_input: bool = False,
         init_weights: Optional[bool] = None,
         blocks: Optional[List[Callable[..., nn.Module]]] = None,
@@ -91,7 +91,7 @@ class GoogLeNet(nn.Module):
     ) -> None:
         super(GoogLeNet, self).__init__()
         if blocks is None:
-            blocks = [getQBasicConv2d(q_cfg), # if q_cfg is not None else BasicConv2d, 
+            blocks = [getQBasicConv2d(q_cfg) if q_cfg is not None else BasicConv2d, 
                       Inception, 
                       InceptionAux]
         if init_weights is None:
@@ -108,10 +108,22 @@ class GoogLeNet(nn.Module):
         self.transform_input = transform_input
 
         if num_classes == 1000:
-            self.conv1 = conv_block(3, 64, kernel_size=7, stride=2, padding=3)
+            if q_cfg is not None:
+                if q_cfg.qfirst:
+                    self.conv1 = conv_block(3, 64, kernel_size=7, stride=2, padding=3)
+                else:
+                    self.conv1 = BasicConv2d(3, 64, kernel_size=7, stride=2, padding=3)
+            else:
+                self.conv1 = BasicConv2d(3, 64, kernel_size=7, stride=2, padding=3)
             self.maxpool1 = nn.MaxPool2d(3, stride=2, ceil_mode=True)
         elif num_classes == 10:
-            self.conv1 = conv_block(3, 64, kernel_size=3, stride=1, padding=1)
+            if q_cfg is not None:
+                if q_cfg.qfirst:
+                    self.conv1 = conv_block(3, 64, kernel_size=3, stride=1, padding=1)
+                else:
+                    self.conv1 = BasicConv2d(3, 64, kernel_size=3, stride=1, padding=1)
+            else:
+                self.conv1 = BasicConv2d(3, 64, kernel_size=3, stride=1, padding=1)
             self.maxpool1 = None
         else:
             exit('wrong num_classes')
@@ -238,11 +250,18 @@ class GoogLeNet(nn.Module):
         x, aux1, aux2 = self._forward(x)
         aux_defined = self.training and self.aux_logits
         if torch.jit.is_scripting():
+            warnings.warn("Jit is scripting")
             if not aux_defined:
                 warnings.warn("Scripted GoogleNet always returns GoogleNetOutputs Tuple")
             return GoogLeNetOutputs(x, aux2, aux1)
         else:
             return self.eager_outputs(x, aux2, aux1)
+
+    def enable_quantize(self):
+        ''' API to enable quantize
+        '''
+        self.apply(q_enable)
+
 
 
 class Inception(nn.Module):

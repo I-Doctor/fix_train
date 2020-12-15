@@ -1,222 +1,124 @@
-import tensorflow as tf
-import Option
-from tensorflow.contrib.layers import batch_norm
-import Quantize
-import myInitializer
+#import torch
+import torch.nn as nn
+import math
+from .module import *
+
+__all__ = ['vgglikenet', 'VGGLNet']
 
 
-class NN(object):
-  def __init__(self, X, Y, training=True, global_step=None):
 
-    self.shapeX = X.get_shape().as_list()
-    self.shapeY = Y.get_shape().as_list()
+class VGGLNet(nn.Module):
+    ''' VGGLNet class define which support quantize
+        
+        batchnorm   : batch norm or not
+        q_cfg       : dict, how to do quantization
+    '''
 
-    # if data dype is not float32, we assume that there is no preprocess
-    if X.dtype != tf.float32:
-      X = tf.cast(X, tf.float32)
-      print 'Input data dype is not float32, perform simple preprocess [0,255]->[-1,1]'
-      X = X / 127.5 - 1
-    else:
-      print 'Input data dype is float32, we assume they are preprocessed already'
+    def __init__(self, batchnorm=True, q_cfg=None):
 
-    # quantize inputs
-    self.H = [X]
-    self._QA(X)
+        super(SMPNet, self).__init__()
+         
+        self.quantize = False
+        self.num_classes = 10
 
-    self.Y = Y
+        self.conv1 = nn.Conv2d(3, 128, kernel_size=3, stride=1, padding=1, bias=False, q_cfg=q_cfg)
+        self.bn1   = nn.BatchNorm2d(v)
+        self.relu1 = nn.ReLU(inplace=True) 
+        if q_cfg is not None:
+            self.conv2 = nn.Conv2d(128, 128, kernel_size=3, stride=1, padding=1, bias=False, q_cfg=q_cfg)
+            self.pool2 = nn.MaxPool2d(kernel_size=2, stride=2)
+            self.relu2 = nn.ReLU(inplace=True) 
 
-    self.lossFunc = Option.lossFunc
-    self.L2 = Option.L2
+        self._make_features(batchnorm, q_cfg)
 
-    self.initializer = myInitializer.variance_scaling_initializer(
-      factor=1.0, mode='FAN_IN', uniform=True)
+        if q_cfg is not None:
+            self.classifier = nn.Sequential(
+                QLinear(16 * 1 * 1, self.num_classes, q_cfg=q_cfg),
+            )
+        else:
+            self.classifier = nn.Sequential(
+                nn.Linear(16 * 1 * 1, self.num_classes),
+            )
 
-    self.is_training = training
-    self.GPU = Option.GPU
-
-    self.W = []
-    self.W_q = []
-    self.W_clip_op = []
-    self.W_q_op = []
-
-  def build_graph(self):
-    if Option.dataSet == 'CIFAR10':
-      out = self._VGG7()
-    else:
-      assert False, 'None network model is defined!'
-
-    self.out = out
-    return self._loss(out, self.Y)
+        # initialize
+        self._initialize()
 
 
-  def _VGG7(self):
+    def _make_features(self, batch_norm=True, q_cfg=None):
+        ''' the function to make feature layers of vggnet
+            
+            batch_norm  : batch norm or not
+            q_cfg       : dict, how to do quantization
+        '''
+        layers = []
+        in_channels = 3
+        v = 16
 
-    x = self.H[-1]
+        layers += [nn.MaxPool2d(kernel_size=2, stride=2)]
 
-    with tf.variable_scope('U0'):
-      with tf.variable_scope('C0'):
-        x = self._conv(x, 3, 128)
-        x = self._activation(x)
-      with tf.variable_scope('C1'):
-        x = self._conv(x, 3, 128)
-        x = self._pool(x, 'MAX', 2, 2)
-        x = self._activation(x)
+        for i in range(self.depth -1):
 
-    with tf.variable_scope('U1'):
-      with tf.variable_scope('C0'):
-        x = self._conv(x, 3, 256)
-        x = self._activation(x)
-      with tf.variable_scope('C1'):
-        x = self._conv(x, 3, 256)
-        x = self._pool(x, 'MAX', 2, 2)
-        x = self._activation(x)
+            if q_cfg is not None:
+                conv2d = QConv2d(in_channels, v, kernel_size=3, stride=1, padding=1, bias=False, q_cfg=q_cfg)
+                bn     = nn.BatchNorm2d(v)
+            else:
+                conv2d = nn.Conv2d(in_channels, v, kernel_size=3, stride=1, padding=1, bias=False)
+                bn     = nn.BatchNorm2d(v)
+            if batch_norm:
+                layers += [conv2d, bn, nn.ReLU(inplace=True)]
+            else:
+                layers += [conv2d, nn.ReLU(inplace=True)]
+            in_channels = v
 
-    with tf.variable_scope('U2'):
-      with tf.variable_scope('C0'):
-        x = self._conv(x, 3, 512)
-        x = self._activation(x)
-      with tf.variable_scope('C1'):
-        x = self._conv(x, 3, 512)
-        x = self._pool(x, 'MAX', 2, 2)
-        x = self._activation(x)
+        layers += [nn.MaxPool2d(kernel_size=2, stride=2)]
+        layers += [nn.AvgPool2d(kernel_size=8)]
 
-    x = self._reshape(x)
-    with tf.variable_scope('FC'):
-      x = self._fc(x, 1024, name='fc0')
-      x = self._activation(x)
-      x = self._fc(x, self.shapeY[1], name='fc1')
-
-    # for last layer(first layer in backpro) error input quantization
-    with tf.variable_scope('last'):
-      x = self._QE(x)
-
-    return x
+        return nn.Sequential(*layers)
 
 
-  def _loss(self, out, labels):
-    labels = tf.cast(labels,tf.float32)
-
-    with tf.name_scope('loss'):
-      if self.lossFunc == 'SSE':
-        loss = 0.5 * tf.reduce_sum(tf.square(labels - out))
-      else:
-        loss = self.lossFunc(labels, out)
-      if self.L2 > 0:
-        loss += self.L2 * self._L2()
-
-    # error calculation
-    with tf.name_scope('error'):
-      # classification labels
-      label = tf.argmax(labels, axis=1)
-
-      in_top_k = 1
-      error = tf.reduce_mean(tf.cast(tf.logical_not(tf.nn.in_top_k(out, label, in_top_k)), tf.float32))
-
-    if self.is_training:
-      self._totalParameters()
-      with tf.name_scope('debug'):
-        self.gradsH = tf.gradients(loss, self.H)
-        self.gradsW = tf.gradients(loss, self.W)
-
-    return loss, error
-
-  def _arr(self, stride_or_ksize):
-    # data format NCHW
-    return [1, 1, stride_or_ksize, stride_or_ksize]
-
-  def _QA(self, x):
-    if Option.bitsA <= 16:
-      x = Quantize.A(x)
-      self.H.append(x)
-    return x
-
-  def _QE(self, x):
-    if Option.bitsE <= 16:
-      x = Quantize.E(x)
-      self.H.append(x)
-    return x
-
-  def _activation(self, x):
-    x = tf.nn.relu(x)
-    x = self._QE(x)
-    x = self._QA(x)
-    return x
-
-  def _get_variable(self, shape, name):
-    with tf.name_scope(name) as scope:
-      self.W.append(tf.get_variable(name=name, shape=shape, initializer=self.initializer))
-
-      print 'W:', self.W[-1].device, scope, shape,
-      if Quantize.bitsW <= 16:
-        # manually clip and quantize W if needed
-        self.W_q_op.append(tf.assign(self.W[-1], Quantize.Q(self.W[-1], Quantize.bitsW)))
-        self.W_clip_op.append(tf.assign(self.W[-1],Quantize.C(self.W[-1],Quantize.bitsW)))
-
-        scale = Option.W_scale[len(self.W)-1]
-        print 'Scale:%d' % scale
-        self.W_q.append(Quantize.W(self.W[-1], scale))
-        return self.W_q[-1]
-      else:
-        print ''
-        return self.W[-1]
-
-  def _conv(self, x, ksize, c_out, stride=1, padding='SAME', name='conv'):
-    c_in = x.get_shape().as_list()[1]
-    W = self._get_variable([ksize, ksize, c_in, c_out], name)
-    x = tf.nn.conv2d(x, W, self._arr(stride), padding=padding, data_format='NCHW', name=name)
-    self.H.append(x)
-    return x
-
-  def _fc(self, x, c_out, name='fc'):
-    c_in = x.get_shape().as_list()[1]
-    W = self._get_variable([c_in, c_out], name)
-    x = tf.matmul(x, W)
-    self.H.append(x)
-    return x
-
-  def _pool(self, x, type, ksize, stride=1, padding='SAME'):
-    if type == 'MAX':
-      x = tf.nn.max_pool(x, self._arr(ksize), self._arr(stride), padding=padding, data_format='NCHW')
-    elif type == 'AVG':
-      x = tf.nn.avg_pool(x, self._arr(ksize), self._arr(stride), padding=padding, data_format='NCHW')
-    else:
-      assert False, ('Invalid pooling type:' + type)
-    self.H.append(x)
-    return x
-
-  def _batch_norm(self, x, data_format='NCHW'):
-    x = batch_norm(x, center=True, scale=True, is_training=self.is_training, decay=0.9, epsilon=1e-5, fused=True, data_format=data_format)
-    self.H.append(x)
-    return x
-
-  def _reshape(self, x, shape=None):
-    if shape == None:
-      shape = reduce(lambda x, y: x * y, x.get_shape().as_list()[1:])
-    x = tf.reshape(x, [-1, shape])
-    self.H.append(x)
-    return x
-
-  def _totalParameters(self):
-    total_parameters_fc = 0
-    total_parameters_conv = 0
-    for var in tf.trainable_variables():
-      name_lowcase = var.op.name.lower()
-      if name_lowcase.find('fc') > -1:
-        total_parameters_fc += reduce(lambda x, y: x * y, var.get_shape().as_list())
-      elif name_lowcase.find('conv') > -1:
-        total_parameters_conv += reduce(lambda x, y: x * y, var.get_shape().as_list())
-    total_parameters = total_parameters_fc + total_parameters_conv
-    print 'CONV: %d FC: %d Total: %d' % (total_parameters_conv,total_parameters_fc,total_parameters)
-    return total_parameters
-
-  def _L2(self):
-    decay = []
-    for var in tf.trainable_variables():
-      name_lowcase = var.op.name.lower()
-      if name_lowcase.find('fc') > -1 or name_lowcase.find('conv') > -1:
-        if Option.bitsW == 32:
-          decay.append(tf.nn.l2_loss(var))
-    return tf.add_n(decay)
+    def _initialize(self):
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
+                m.weight.data.normal_(0, math.sqrt(8. / n))
+                if m.bias is not None:
+                    m.bias.data.zero_()
+            elif isinstance(m, nn.BatchNorm2d):
+                m.weight.data.fill_(1)
+                m.bias.data.zero_()
+            elif isinstance(m, nn.Linear):
+                m.weight.data.normal_(0, 0.05)
+                m.bias.data.zero_()
 
 
+    def forward(self, x):
+        x = self.features(x)
+        x = x.view(x.size(0), -1)
+        x = self.classifier(x)
+
+        return x
+        
+
+    def enable_quantize(self):
+        ''' API to enable quantize
+        '''
+        self.apply(q_enable)
+
+    def set_lr_scale(self, lr_p):
+        ''' API to set learning rate scale bit
+        '''
+        for m in self.modules():
+            if hasattr(m, 'lr_scale_p') and hasattr(m, "magnitude"):
+                if m.magnitude == 'ceil' and lr_p != 0:
+                    m.lr_scale_p = lr_p
+                    print("    Set lr scale bit of")
+                    print(m)
+
+
+
+def simplenet(depth, num_classes, batchnorm=True, q_cfg=None):
+    ''' function to get a SMPNet
+    '''
+
+    return SMPNet(depth, num_classes, batchnorm, q_cfg)
 

@@ -163,6 +163,10 @@ def main(argv):
         # set this by main_worker bellow
         warnings.warn('You have chosen a specific GPU. This will completely '
                        'disable data parallelism.')
+    else:
+        print("Use GPU: {} for training".format("4,5,6,7"))
+        os.environ["CUDA_VISIBLE_DEVICES"] = "4,5,6,7"
+
     
     if cfg.dist_url == "env://" and cfg.world_size == -1:
         cfg.world_size = int(os.environ["WORLD_SIZE"])
@@ -213,8 +217,12 @@ def main_worker(gpu, ngpus_per_node, cfg):
         model = models.__dict__[net_cfg.arch](depth = net_cfg.depth, num_classes=net_cfg.num_classes, 
                                               q_cfg = net_cfg.q_cfg)
 
+    print("debug gpu {}".format(cfg.gpu))
     if cfg.gpu is not None:
         print("Use GPU: {} for training".format(cfg.gpu))
+    else:
+        print("Use GPU: {} for training".format("4,5,6,7"))
+        os.environ["CUDA_VISIBLE_DEVICES"] = "4,5,6,7"
     
     if cfg.distributed:
         if cfg.dist_url == "env://" and cfg.rank == -1:
@@ -250,7 +258,7 @@ def main_worker(gpu, ngpus_per_node, cfg):
     else:
         # DataParallel will divide and allocate batch_size to all available GPUs
         print('DataParallel now.')
-        if net_cfg.arch.startswith('alexnet') or net_cfg.arch.startswith('vgg'):
+        if net_cfg.arch.startswith('alexnet'): #or net_cfg.arch.startswith('vgg'):
             model.features = torch.nn.DataParallel(model.features)
             model.cuda()
         else:

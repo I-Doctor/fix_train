@@ -1,3 +1,15 @@
+######################################################################
+# (c) Copyright EFC of NICS, Tsinghua University. All rights reserved.
+#  Author: Kai Zhong
+#  Email : zhongk19@mails.tsinghua.edu.cn
+#  
+#  Create Date : 2029.12.08
+#  File Name   : resnet.py
+#  Description : 
+#  Dependencies: 
+#  reference   https://github.com/pytorch/example
+#  and         https://github.com/
+######################################################################
 
 #import torch
 import torch.nn as nn
@@ -82,6 +94,7 @@ class Bottleneck(nn.Module):
         self.downsample = downsample
         self.stride = stride
 
+        print("debug Bottleneck init")
         # quantize mode
         if q_cfg is not None:
             self.conv1 = QConv2d(inplanes, planes, kernel_size=1, bias=False, q_cfg=q_cfg)
@@ -100,6 +113,8 @@ class Bottleneck(nn.Module):
         self.relu2 = nn.ReLU(inplace=True)
         self.bn3   = nn.BatchNorm2d(planes * 4)
         self.relu3 = nn.ReLU(inplace=True)
+
+        print("debug Bottleneck init done")
 
     def forward(self, x):
         residual = x
@@ -173,18 +188,21 @@ class ResNet(nn.Module):
             self.layers = []
             layers, block_type = _depth['imagenet'][self.depth]
             # the first block with stride=1
+            print("debug Making first block")
             self.layers.append(
                 self._make_layer(block_type, self.inplanes, layers[0], q_cfg=q_cfg)
             )
             # the other blocks with stride=2
+            print("debug Making other blocks")
             for idx in range(1, len(layers)):
                 self.layers.append(
-                    self._make_layer(block_type,self.inplanes*(2),layers[idx],
+                    self._make_layer(block_type, self.inplanes*2//block_type.expansion, layers[idx],
                                      stride=2, q_cfg=q_cfg)
                 )
             self.layers = nn.Sequential(*self.layers)
 
             # the pooling and linear layer at the end
+            print("debug Making pooling and linear layers")
             self.avgpool = nn.AvgPool2d(7)
             if q_cfg is not None and q_cfg.qlinear:
                 self.fc = QLinear(512 * block_type.expansion, num_classes, q_cfg=q_cfg)
@@ -226,6 +244,7 @@ class ResNet(nn.Module):
             else:
                 self.fc = nn.Linear(64 * block_type.expansion, num_classes)
 
+        print("debug Initializing")
         # initialize
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
@@ -261,6 +280,11 @@ class ResNet(nn.Module):
             q_cfg   : dict, how to do quantization
         '''
 
+        print("debug Making layer:")
+        print("debug block:", block)
+        print("debug planes:", planes)
+        print("debug blocks:", blocks)
+        print("debug stride:", stride)
         downsample = None       # no downsample for default
         # set downsample of cifar-layers
         if self.depth in _depth['cifar']:
@@ -294,10 +318,12 @@ class ResNet(nn.Module):
                                   kernel_size=1, stride=stride, bias=False),
                         nn.BatchNorm2d(planes * block.expansion),
                     )
+            print("debug downsample:", downsample)
 
         layers = []
         # define a block with arguments and append to layers list
         layers.append(block(self.inplanes, planes, stride, downsample, q_cfg))
+        print("debug block appended")
         self.inplanes = planes * block.expansion
         # define other blocks with differnet planes and append to layers list
         for i in range(1, blocks):

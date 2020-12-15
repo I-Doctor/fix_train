@@ -2,30 +2,31 @@ data_root: /home/eva_share/datasets/
 float_epoch: 1
 print_freq: 50
 NETWORK: 
-    depth: 20
+    arch: googlenet
+    depth: 32
     num_classes: 10
     batchnorm: true
     quantize: true
     q_cfg:
         bw:
-            - 4
-            - 4
-            - 4
+            - 1
+            - 1
+            - 1
         level:
-            - 3
-            - 3
-            - 3
+            - 2
+            - 2
+            - 2
         stochastic: true
         signed: false
         qfirst: false
         group: 
-            - nc
+            - n
             - c
-            - nc
+            - n
         g_scale_type: complex
         value_type: progress
 TRAIN: 
-    epoch: 181
+    epoch: 170
     optimizer: SGDm
     learning_rate: 
         - 0.1
@@ -34,13 +35,13 @@ TRAIN:
         - 0.0005
     decay_step:
         - 0
-        - 81
-        - 122
-        - 163
+        - 80
+        - 120
+        - 160
     weight_decay: 0.0005
     momentum: 0.9
 DATA:
-    batch_size: 128
+    batch_size: 256
     num_works: 8
     valid_batch_size: 128
     valid_num_works: 8

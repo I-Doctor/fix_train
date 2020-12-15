@@ -3,28 +3,29 @@ float_epoch: 1
 print_freq: 50
 NETWORK: 
     arch: vggnet
-    depth: 11
+    depth: 16
     batchnorm: true
-    quantize: false
-    q_cfg: null
-    #    q_cfg:
-    #        bw:
-    #            - 4
-    #            - 4
-    #            - 4
-    #        level:
-    #            - 0
-    #            - 0
-    #            - 0
-    #        stochastic: true
-    #        signed: false
-    #        qfirst: false
-    #        group: 
-    #            - nc
-    #            - c
-    #            - nc
-    #        g_scale_type: complex
-    #        value_type: progress
+    quantize: true
+    #q_cfg: null
+    q_cfg:
+        bw:
+            - 2
+            - 2
+            - 2
+        level:
+            - 1
+            - 1
+            - 1
+        stochastic: true
+        signed: false
+        qfirst: false
+        qlinear: false
+        group: 
+            - nc
+            - c
+            - nc
+        g_scale_type: complex
+        value_type: progress
 TRAIN: 
     epoch: 130
     learning_rate: 
