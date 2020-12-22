@@ -13,16 +13,16 @@ NETWORK:
             - 1
             - 1
         level:
-            - 2
-            - 2
-            - 2
+            - 1
+            - 1
+            - 1
         stochastic: true
         signed: false
         qfirst: false
         group: 
-            - n
+            - nc
             - c
-            - n
+            - nc
         g_scale_type: complex
         value_type: progress
 TRAIN: 

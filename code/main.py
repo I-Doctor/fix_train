@@ -259,6 +259,7 @@ def main_worker(gpu, ngpus_per_node, cfg):
         # DataParallel will divide and allocate batch_size to all available GPUs
         print('DataParallel now.')
         if net_cfg.arch.startswith('alexnet'): #or net_cfg.arch.startswith('vgg'):
+        #if net_cfg.arch.startswith('alexnet') or net_cfg.arch.startswith('vgg'):
             model.features = torch.nn.DataParallel(model.features)
             model.cuda()
         else:
@@ -268,7 +269,7 @@ def main_worker(gpu, ngpus_per_node, cfg):
     
     # measure the model
     if data_cfg.dataset=='ILSVRC2012_img':
-        df = torch_summarize_df(input_size=(3,256,256), model=model)
+        df = torch_summarize_df(input_size=(3,224,224), model=model)
     else:
         df = torch_summarize_df(input_size=(3,32,32), model=model)
     print(df)
