@@ -6,7 +6,7 @@ NETWORK:
     depth: 16
     num_classes: 1000
     batchnorm: true
-    quantize: false
+    quantize: true
     q_cfg: 
         bw:
             - 5
@@ -50,7 +50,7 @@ DATA:
     flip: true
     shuffle: true
     random_crop_pad: 4
-    valid_batch_size: 512
+    valid_batch_size: 256
     valid_num_works: 8
 LOG:
     frequent: 300

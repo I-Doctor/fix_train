@@ -37,14 +37,14 @@ model_names = sorted(name for name in models.__dict__
                      callable(models.__dict__[name]))
 
 '''
-class MyDataParallel(nn.DataParallel):     
-    def __getattr__(self, name):         
+class MyDataParallel(nn.DataParallel):
+    def __getattr__(self, name):
         print(self)
         print(type(self))
         m=getattr(self,'module')
         print(m)
         raise ValueError('data parrallel')
-        
+
         return getattr(module,name)
 '''
 
@@ -59,7 +59,7 @@ def main(argv):
 
     # Required arguments: input and output files.
     parser.add_argument(
-        "data_root", 
+        "data_root",
         help = "Must give the dataset root to do the training (absolute path)."
    )
     parser.add_argument(
@@ -71,8 +71,12 @@ def main(argv):
         help = "Must give the path to save output logfile and other data."
    )
     parser.add_argument(
-        "--gpu", default=None, type=int, 
-        help = "Set visible gpu independantly because it has no influence to results"
+        "--gpu", default=None, type=int,
+        help = "Set the only visible gpu id for single gpu running."
+   )
+    parser.add_argument(
+        "--gpu_env", default=None, type=str,
+        help = "Set total visible gpus environment."
    )
     parser.add_argument('--multiprocessing-distributed', action='store_true',
                          help='Use multi-processing distributed training to launch '
@@ -120,12 +124,13 @@ def main(argv):
     args = parser.parse_args()
 
     print("cfg_file name:", args.config_file)
-    cfg = create_default_cfg()  
-    update_cfg(cfg, args.config_file)  
+    cfg = create_default_cfg()
+    update_cfg(cfg, args.config_file)
 
     cfg.data_root = args.data_root
     cfg.output_dir = args.output_dir
     cfg.gpu = args.gpu
+    cfg.env = args.gpu_env
     cfg.multiprocessing_distributed = args.multiprocessing_distributed
     print_cfg(cfg)
 
@@ -133,7 +138,7 @@ def main(argv):
     train_cfg = cfg.TRAIN
     data_cfg  = cfg.DATA
     log_cfg   = cfg.LOG
-    
+
     # check learning rate adjustment parameters are valid
     if isinstance(train_cfg.learning_rate, list) & (isinstance(train_cfg.decay_step, list)):
         if len(train_cfg.learning_rate) == len(train_cfg.decay_step):
@@ -156,25 +161,25 @@ def main(argv):
                       'which can slow down your training considerably! '
                       'You may see unexpected behavior when restarting '
                       'from checkpoints.')
-    
+
     # check and set whole system
+    if args.gpu_env is not None:
+        os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu_env
+        print('You have chosen some specific GPUs.')
+
     if args.gpu is not None:
-        # os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu
         # set this by main_worker bellow
         warnings.warn('You have chosen a specific GPU. This will completely '
                        'disable data parallelism.')
-    else:
-        print("Use GPU: {} for training".format("4,5,6,7"))
-        os.environ["CUDA_VISIBLE_DEVICES"] = "4,5,6,7"
 
-    
+
     if cfg.dist_url == "env://" and cfg.world_size == -1:
         cfg.world_size = int(os.environ["WORLD_SIZE"])
-    
+
     cfg.distributed = cfg.world_size > 1 or cfg.multiprocessing_distributed
-    
+
     ngpus_per_node = torch.cuda.device_count()
-    
+
     if cfg.multiprocessing_distributed:
         # Since we have ngpus_per_node processes per node, the total world_size
         # needs to be adjusted accordingly
@@ -221,8 +226,9 @@ def main_worker(gpu, ngpus_per_node, cfg):
     if cfg.gpu is not None:
         print("Use GPU: {} for training".format(cfg.gpu))
     else:
-        print("Use GPU: {} for training".format("4,5,6,7"))
-        os.environ["CUDA_VISIBLE_DEVICES"] = "4,5,6,7"
+        print("Use GPU: {} for training".format(cfg.gpu))
+        #print("Use CPU for training")
+        #os.environ["CUDA_VISIBLE_DEVICES"] = "4,5,6,7"
     
     if cfg.distributed:
         if cfg.dist_url == "env://" and cfg.rank == -1:
@@ -258,16 +264,18 @@ def main_worker(gpu, ngpus_per_node, cfg):
     else:
         # DataParallel will divide and allocate batch_size to all available GPUs
         print('DataParallel now.')
-        if net_cfg.arch.startswith('alexnet'): #or net_cfg.arch.startswith('vgg'):
-        #if net_cfg.arch.startswith('alexnet') or net_cfg.arch.startswith('vgg'):
+        if net_cfg.arch.startswith('alexnet') or net_cfg.arch.startswith('vgg'):
             model.features = torch.nn.DataParallel(model.features)
             model.cuda()
+            print('DataParallel done of classifier.')
         else:
             #model = MyDataParallel(model).cuda()
             parallel = True
             model = torch.nn.DataParallel(model).cuda()
-    
+            print('DataParallel done.')
+
     # measure the model
+    print('Start summary')
     if data_cfg.dataset=='ILSVRC2012_img':
         df = torch_summarize_df(input_size=(3,224,224), model=model)
     else:
@@ -279,7 +287,7 @@ def main_worker(gpu, ngpus_per_node, cfg):
     #----------------------DEFINE OPTIMIZER---------------------------#
     print("===start defining optimizer===")
     criterion = nn.CrossEntropyLoss().cuda(cfg.gpu)
-    
+
     opt_Adam  = optim.Adam( model.parameters(), lr = LR_start, 
                             betas=(0.9, 0.999), weight_decay = 1e-8) 
     opt_SGD   = optim.SGD ( model.parameters(), lr = LR_start,
@@ -292,15 +300,15 @@ def main_worker(gpu, ngpus_per_node, cfg):
 
     if train_cfg.optimizer == "Adam":
         print("  Use optimizer Adam.")
-        optimizer = opt_Adam    
+        optimizer = opt_Adam
     elif train_cfg.optimizer == "SGDm":
         print("  Use optimizer SGDm.")
         optimizer = opt_SGDm
     else:
         print("  Use optimizer SGD.")
         optimizer = opt_SGD
-    
-    
+
+
     #----------------OPTIONALLY RESUME FROM A CHECKPOINT----------------#
     if train_cfg.resume is not None:
         if os.path.isfile(train_cfg.resume):
@@ -342,7 +350,7 @@ def main_worker(gpu, ngpus_per_node, cfg):
     valdir = os.path.join(cfg.data_root, data_cfg.dataset+'_val')
     #normalize = transforms.Normalize(mean=data_cfg.pixel_means,
     #                                 std=data_cfg.pixel_stds)
-    
+
     if data_cfg.dataset=='ILSVRC2012_img':
         normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                          std=[0.229, 0.224, 0.225])
@@ -355,7 +363,7 @@ def main_worker(gpu, ngpus_per_node, cfg):
                 normalize,
             ]))
         val_dataset = datasets.ImageFolder(
-            valdir, 
+            valdir,
             transforms.Compose([
                 transforms.Resize(256),
                 transforms.CenterCrop(224),
@@ -383,7 +391,7 @@ def main_worker(gpu, ngpus_per_node, cfg):
                 transforms.ToTensor(),
                 normalize,
             ]))
-    
+
     if cfg.distributed:
         train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset)
     else:
@@ -393,12 +401,13 @@ def main_worker(gpu, ngpus_per_node, cfg):
     train_loader = torch.utils.data.DataLoader(
         train_dataset, batch_size=data_cfg.batch_size, shuffle=if_shuffle,
         num_workers=data_cfg.num_works, pin_memory=True, sampler=train_sampler)
-    
+
     val_loader = torch.utils.data.DataLoader(
         val_dataset, batch_size=data_cfg.batch_size, shuffle=False,
         num_workers=data_cfg.num_works, pin_memory=True)
-    
-    
+    print("Data load done.")
+
+
     #---------------------VALIDATE OR TRAIN------------------------#
     if train_cfg.evaluate:
         validate(val_loader, model, criterion, cfg)
@@ -407,7 +416,7 @@ def main_worker(gpu, ngpus_per_node, cfg):
         else:
             finalreport(val_loader, model, net_cfg.num_classes, cfg.cuda)
         return
-    
+
     # we define log_cfg.frequent > 200 as no log
     if log_cfg.frequent < 200:
         print("===creating hook_ctrls===")
@@ -418,7 +427,7 @@ def main_worker(gpu, ngpus_per_node, cfg):
 
     print("===start train with epoch===")
     for epoch in range(START_epoch, train_cfg.epoch):
-        
+
         if cfg.distributed:
             train_sampler.set_epoch(epoch)
 
@@ -429,7 +438,7 @@ def main_worker(gpu, ngpus_per_node, cfg):
                 model.module.enable_quantize()
             else:
                 model.enable_quantize()
-        
+
         # train for one epoch, insert hooks and save output if meet frequence
         if epoch % log_cfg.frequent == 0 and log_cfg.frequent<200 :
             for h in hooks:
@@ -445,10 +454,10 @@ def main_worker(gpu, ngpus_per_node, cfg):
                 h.save(ctype=[], output_path = hook_files[log_cfg.types[i]], resume = False)
         else:
             train(train_loader, model, criterion, optimizer, epoch, cfg)
-        
+
         # evaluate on validation set
         acc1 = validate(val_loader, model, criterion, cfg)
-        
+ 
         # record best_acc1 @ best_epo1 and save checkpoint at the end of an epoch
         if acc1 > best_acc1 :
             best_acc1 = acc1
@@ -487,10 +496,10 @@ def main_worker(gpu, ngpus_per_node, cfg):
     # validate(imgnet) or report(cifar10) at the end of training
     if data_cfg.dataset=='ILSVRC2012_img':
         acc1 = validate(val_loader, model, criterion, cfg)
-        acc1 = validate(val_loader, model, criterion, cfg)
-        acc1 = validate(val_loader, model, criterion, cfg, True)
-        acc1 = validate(val_loader, model, criterion, cfg, True)
-        acc1 = validate(val_loader, model, criterion, cfg)
+        #acc1 = validate(val_loader, model, criterion, cfg)
+        #acc1 = validate(val_loader, model, criterion, cfg, True)
+        #acc1 = validate(val_loader, model, criterion, cfg, True)
+        #acc1 = validate(val_loader, model, criterion, cfg)
         pass
     else:
         finalreport(val_loader, model, net_cfg.num_classes, cfg.cuda)
@@ -505,10 +514,10 @@ def train(train_loader, model, criterion, optimizer, epoch, args, hooks=None):
     losses = AverageMeter()
     top1 = AverageMeter()
     top5 = AverageMeter()
-    
+
     # switch to train mode
     model.train()
-    
+
     print("---train(epoch)---")
     end = time.time()
     for i, (inputs, target) in enumerate(train_loader):
@@ -520,30 +529,35 @@ def train(train_loader, model, criterion, optimizer, epoch, args, hooks=None):
 
         if args.gpu is not None:
             inputs = inputs.cuda(args.gpu, non_blocking=True)
-        target = target.cuda(args.gpu, non_blocking=True)
+        if torch.cuda.is_available:
+            target = target.cuda(args.gpu, non_blocking=True)
 
+        #print("DEBUG: data loading time done.")
+        #print("DEBUG:", inputs.device, target.device)
         # measure data loading time
         data_time.update(time.time() - end)
-        
+
         # compute output
         output = model(inputs)
         loss = criterion(output, target)
-        
+        #print("DEBUG: compute loss done.")
+
         # measure accuracy and record loss
         acc1, acc5 = accuracy(output, target, topk=(1, 5))
         losses.update(loss.item(), inputs.size(0))
         top1.update(acc1[0], inputs.size(0))
         top5.update(acc5[0], inputs.size(0))
-        
+
         # compute gradient and do SGD step
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-        
+        #print("DEBUG: optimize step done.")
+
         # measure elapsed time
         batch_time.update(time.time() - end)
         end = time.time()
-        
+
         if i % args.print_freq == 0:
             print('Epoch: [{0}][{1}/{2}]\t'
                   'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
@@ -554,6 +568,8 @@ def train(train_loader, model, criterion, optimizer, epoch, args, hooks=None):
                 epoch, i, len(train_loader), batch_time=batch_time,
                 data_time=data_time, loss=losses, top1=top1, top5=top5))
             #return
+        #if i>0 and i % args.print_freq == 0:
+        #    exit()
 
 
 
@@ -562,31 +578,31 @@ def validate(val_loader, model, criterion, args, train=False):
     losses = AverageMeter()
     top1 = AverageMeter()
     top5 = AverageMeter()
-    
+
     # switch to evaluate mode
     model.train(train)
-    
+
     with torch.no_grad():
         end = time.time()
         for i, (inputs, target) in enumerate(val_loader):
             if args.gpu is not None:
                 inputs = inputs.cuda(args.gpu, non_blocking=True)
             target = target.cuda(args.gpu, non_blocking=True)
-            
+
             # compute output
             output = model(inputs)
             loss = criterion(output, target)
-            
+
             # measure accuracy and record loss
             acc1, acc5 = accuracy(output, target, topk=(1, 5))
             losses.update(loss.item(), inputs.size(0))
             top1.update(acc1[0], inputs.size(0))
             top5.update(acc5[0], inputs.size(0))
-            
+
             # measure elapsed time
             batch_time.update(time.time() - end)
             end = time.time()
-            
+
             if i % args.print_freq == 0:
                 print('Test: [{0}/{1}]\t'
                       'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
@@ -595,10 +611,10 @@ def validate(val_loader, model, criterion, args, train=False):
                       'Acc@5 {top5.val:.3f} ({top5.avg:.3f})'.format(
                     i, len(val_loader), batch_time=batch_time, loss=losses,
                     top1=top1, top5=top5))
-        
+
         print(' * Acc@1 {top1.avg:.3f} Acc@5 {top5.avg:.3f}'
                     .format(top1=top1, top5=top5))
-    
+
     return top1.avg
 
 '''
