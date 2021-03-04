@@ -2,11 +2,11 @@ data_root: /home/eva_share/datasets/ILSVRC2012/ILSVRC2012_img_train
 float_epoch: 1
 print_freq: 50
 NETWORK: 
-    arch: vggnet
-    depth: 16
+    arch: resnet
+    depth: 34
     num_classes: 1000
     batchnorm: true
-    quantize: false
+    quantize: true
     q_cfg: 
         bw:
             - 5
@@ -20,9 +20,9 @@ NETWORK:
         signed: false
         qfirst: false
         group: 
-            - nc
+            - n
             - c
-            - nc
+            - n
         g_scale_type: complex
         value_type: progress
 TRAIN: 
@@ -45,12 +45,12 @@ TRAIN:
     momentum: 0.9
 DATA:
     dataset: ILSVRC2012_img
-    batch_size: 256
+    batch_size: 512
     num_works: 8
     flip: true
     shuffle: true
     random_crop_pad: 4
-    valid_batch_size: 512
+    valid_batch_size: 256
     valid_num_works: 8
 LOG:
     frequent: 300
