@@ -50,7 +50,7 @@ DATA:
     flip: true
     shuffle: true
     random_crop_pad: 4
-    valid_batch_size: 128
+    valid_batch_size: 256
     valid_num_works: 8
 LOG:
     frequent: 300
