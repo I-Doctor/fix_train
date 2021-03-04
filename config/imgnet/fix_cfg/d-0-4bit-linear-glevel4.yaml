@@ -20,13 +20,13 @@ NETWORK:
         signed: false
         qfirst: false
         group: 
-            - nc
+            - n
             - c
-            - nc
+            - n
         g_scale_type: complex
         value_type: progress
 TRAIN: 
-    epoch: 90 
+    epoch: 85 
     optimizer: SGDm
     resume: null
     evaluate: false
@@ -39,18 +39,18 @@ TRAIN:
         - 0
         - 30
         - 60
-        - 85
+        - 80
     warmup: false
     weight_decay: 0.0001
     momentum: 0.9
 DATA:
     dataset: ILSVRC2012_img
-    batch_size: 256
+    batch_size: 512
     num_works: 8
     flip: true
     shuffle: true
     random_crop_pad: 4
-    valid_batch_size: 128
+    valid_batch_size: 256
     valid_num_works: 8
 LOG:
     frequent: 300

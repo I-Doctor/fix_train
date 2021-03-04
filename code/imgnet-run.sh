@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 
 #--------------------set global param------------#
-data_root="/home/eva_share/datasets/ILSVRC2012/"
+data_root="~/datasets/ILSVRC2012/"
 current_path=$(pwd)
 checkpoint_path="../checkpoint/fix_experiment/imgnet"
 
