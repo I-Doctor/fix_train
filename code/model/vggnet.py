@@ -44,7 +44,7 @@ class VGGNet(nn.Module):
         self.depth = depth
         linear_channel = 512 if num_classes == 10 else 4096
         linear_input   = 1 if num_classes == 10 else 7
-        linear_dropout = nn.Identity() if num_classes == 10 else nn.Dropout()
+        linear_dropout = nn.Identity() #if num_classes == 10 else nn.Dropout()
         super(VGGNet, self).__init__()
          
         self.quantize = False

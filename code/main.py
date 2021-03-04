@@ -166,6 +166,7 @@ def main(argv):
     else:
         print("Use GPU: {} for training".format("4,5,6,7"))
         os.environ["CUDA_VISIBLE_DEVICES"] = "4,5,6,7"
+        print(torch.cuda.device_count())
 
     
     if cfg.dist_url == "env://" and cfg.world_size == -1:
@@ -223,6 +224,7 @@ def main_worker(gpu, ngpus_per_node, cfg):
     else:
         print("Use GPU: {} for training".format("4,5,6,7"))
         os.environ["CUDA_VISIBLE_DEVICES"] = "4,5,6,7"
+        print(torch.cuda.device_count())
     
     if cfg.distributed:
         if cfg.dist_url == "env://" and cfg.rank == -1:
@@ -258,8 +260,8 @@ def main_worker(gpu, ngpus_per_node, cfg):
     else:
         # DataParallel will divide and allocate batch_size to all available GPUs
         print('DataParallel now.')
-        if net_cfg.arch.startswith('alexnet'): #or net_cfg.arch.startswith('vgg'):
-        #if net_cfg.arch.startswith('alexnet') or net_cfg.arch.startswith('vgg'):
+        #if net_cfg.arch.startswith('alexnet'): #or net_cfg.arch.startswith('vgg'):
+        if net_cfg.arch.startswith('alexnet') or net_cfg.arch.startswith('vgg'):
             model.features = torch.nn.DataParallel(model.features)
             model.cuda()
         else:
@@ -525,6 +527,7 @@ def train(train_loader, model, criterion, optimizer, epoch, args, hooks=None):
         # measure data loading time
         data_time.update(time.time() - end)
         
+        #print("DEBUG:", inputs.device, target.device)
         # compute output
         output = model(inputs)
         loss = criterion(output, target)
