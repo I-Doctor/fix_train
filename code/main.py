@@ -164,8 +164,8 @@ def main(argv):
         warnings.warn('You have chosen a specific GPU. This will completely '
                        'disable data parallelism.')
     else:
-        print("Use GPU: {} for training".format("4,5,6,7"))
-        os.environ["CUDA_VISIBLE_DEVICES"] = "4,5,6,7"
+        print("Use GPU: {} for training".format("2,3,4,5"))
+        os.environ["CUDA_VISIBLE_DEVICES"] = "2,3,4,5"
 
     
     if cfg.dist_url == "env://" and cfg.world_size == -1:
@@ -221,8 +221,8 @@ def main_worker(gpu, ngpus_per_node, cfg):
     if cfg.gpu is not None:
         print("Use GPU: {} for training".format(cfg.gpu))
     else:
-        print("Use GPU: {} for training".format("4,5,6,7"))
-        os.environ["CUDA_VISIBLE_DEVICES"] = "4,5,6,7"
+        print("Use GPU: {} for training".format("2,3,4,5"))
+        os.environ["CUDA_VISIBLE_DEVICES"] = "2,3,4,5"
     
     if cfg.distributed:
         if cfg.dist_url == "env://" and cfg.rank == -1:
