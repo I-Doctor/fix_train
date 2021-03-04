@@ -9,9 +9,9 @@ NETWORK:
     quantize: true
     q_cfg: 
         bw:
-            - 5
-            - 5
-            - 5
+            - 4
+            - 4
+            - 4
         level:
             - 2
             - 2
@@ -26,7 +26,7 @@ NETWORK:
         g_scale_type: complex
         value_type: progress
 TRAIN: 
-    epoch: 90 
+    epoch: 85 
     optimizer: SGDm
     resume: null
     evaluate: false
@@ -39,9 +39,9 @@ TRAIN:
         - 0
         - 30
         - 60
-        - 85
+        - 80
     warmup: false
-    weight_decay: 0.0005
+    weight_decay: 0.0001
     momentum: 0.9
 DATA:
     dataset: ILSVRC2012_img
